@@ -13,7 +13,7 @@ const leaders = [
     name: 'Atlantica',
     description: 'Главное руководство CORZA',
     initials: 'A',
-    avatar: '/leaders/atlantica.png',
+    avatar: '',
   },
   {
     role: 'Глава семьи',
