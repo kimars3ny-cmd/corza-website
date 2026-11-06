@@ -75,19 +75,30 @@ a {
 
 /* НАВИГАЦИЯ */
 
+
 .navbar {
-  position: relative;
-  z-index: 5;
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
   width: min(1240px, calc(100% - 48px));
   min-height: 82px;
-  margin: 24px auto 0;
+  margin: 0;
   padding: 16px 24px;
   border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 25px;
+
+  background: rgba(18, 17, 42, 0.82);
+  border: 1px solid rgba(190, 180, 255, 0.2);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
+
 
 .logo {
   display: flex;
@@ -2186,5 +2197,21 @@ footer > span {
 
   .admin-block .admin-member-rank strong {
     font-size: 15px;
+  }
+}
+
+
+/* ОТСТУП ДЛЯ ЗАКРЕПЛЁННОЙ ПАНЕЛИ */
+.app {
+  padding-top: 118px;
+}
+
+@media (max-width: 850px) {
+  .navbar {
+    top: 8px;
+  }
+
+  .app {
+    padding-top: 145px;
   }
 }
