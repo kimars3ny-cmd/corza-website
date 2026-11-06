@@ -10,9 +10,15 @@ function AdminPanel() {
   const [profiles, setProfiles] = useState([])
   const [requests, setRequests] = useState([])
   const [joinRequests, setJoinRequests] = useState([])
+  const [wallets, setWallets] = useState([])
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  // Форма управления Corza Coin
+  const [coinUserId, setCoinUserId] = useState('')
+  const [coinAmount, setCoinAmount] = useState('')
+  const [coinDescription, setCoinDescription] = useState('')
 
   // Проверяем права администратора
   useEffect(() => {
@@ -63,23 +69,31 @@ function AdminPanel() {
     setLoading(true)
     setMessage('')
 
-    const [profilesResult, requestsResult, joinResult] =
-      await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, game_nickname, server, rank, position, joined_at')
-          .order('created_at', { ascending: false }),
+    const [
+      profilesResult,
+      requestsResult,
+      joinResult,
+      walletsResult
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, game_nickname, server, rank, position, joined_at')
+        .order('created_at', { ascending: false }),
 
-        supabase
-          .from('promotion_requests')
-          .select('*')
-          .order('created_at', { ascending: false }),
+      supabase
+        .from('promotion_requests')
+        .select('*')
+        .order('created_at', { ascending: false }),
 
-        supabase
-          .from('join_requests')
-          .select('*')
-          .order('created_at', { ascending: false }),
-      ])
+      supabase
+        .from('join_requests')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('corza_wallets')
+        .select('user_id, balance')
+    ])
 
     const errors = []
 
@@ -101,6 +115,12 @@ function AdminPanel() {
       setJoinRequests(joinResult.data || [])
     }
 
+    if (walletsResult.error) {
+      errors.push('Кошельки CC: ' + walletsResult.error.message)
+    } else {
+      setWallets(walletsResult.data || [])
+    }
+
     if (errors.length) {
       setMessage('Ошибки загрузки: ' + errors.join(' | '))
     }
@@ -114,6 +134,55 @@ function AdminPanel() {
     }
   }, [isAdmin])
 
+  // Начисление и списание Corza Coin
+  async function adjustCoins(event) {
+    event.preventDefault()
+
+    if (!coinUserId) {
+      setMessage('Выбери игрока.')
+      return
+    }
+
+    const amount = Number(coinAmount)
+
+    if (!Number.isSafeInteger(amount) || amount === 0) {
+      setMessage('Укажи целое число CC, отличное от нуля.')
+      return
+    }
+
+    if (!coinDescription.trim()) {
+      setMessage('Укажи причину операции.')
+      return
+    }
+
+    setLoading(true)
+    setMessage('Выполняем операцию...')
+
+    const { data, error } = await supabase.rpc(
+      'admin_adjust_corza_coins',
+      {
+        p_user_id: coinUserId,
+        p_amount: amount,
+        p_description: coinDescription.trim()
+      }
+    )
+
+    if (error) {
+      setMessage('Ошибка операции: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    setCoinAmount('')
+    setCoinDescription('')
+
+    await loadAdminData()
+
+    setMessage(
+      `${amount > 0 ? 'Начислено' : 'Списано'} ${Math.abs(amount)} CC. Новый баланс: ${data} CC.`
+    )
+  }
+
   // Рассматриваем заявку на повышение
   async function reviewRequest(requestId, status) {
     setLoading(true)
@@ -124,7 +193,7 @@ function AdminPanel() {
       .update({
         status,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
+        reviewed_by: user.id
       })
       .eq('id', requestId)
 
@@ -153,7 +222,7 @@ function AdminPanel() {
       .update({
         status,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
+        reviewed_by: user.id
       })
       .eq('id', requestId)
 
@@ -227,6 +296,142 @@ function AdminPanel() {
         </div>
       </div>
 
+      {/* Управление Corza Coin */}
+      <div className="admin-block glass">
+        <h3>Управление Corza Coin</h3>
+
+        <p>
+          Начисление и списание внутренней валюты CORZA.
+        </p>
+
+        <form
+          onSubmit={adjustCoins}
+          style={{
+            display: 'grid',
+            gap: '14px',
+            maxWidth: '520px',
+            marginTop: '20px'
+          }}
+        >
+          <label>
+            <span>Выбери игрока</span>
+
+            <select
+              value={coinUserId}
+              onChange={(event) => setCoinUserId(event.target.value)}
+              required
+              disabled={loading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px',
+                marginTop: '8px',
+                borderRadius: '10px'
+              }}
+            >
+              <option value="">Выбрать участника...</option>
+
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.game_nickname || 'Без никнейма'}
+                  {' — '}
+                  {profile.server || 'Сервер не указан'}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Количество CC</span>
+
+            <input
+              type="number"
+              step="1"
+              value={coinAmount}
+              onChange={(event) => setCoinAmount(event.target.value)}
+              placeholder="Например: 500 или -200"
+              required
+              disabled={loading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px',
+                marginTop: '8px',
+                borderRadius: '10px'
+              }}
+            />
+          </label>
+
+          <p style={{ opacity: 0.75, fontSize: '13px' }}>
+            Положительное число — начисление. Отрицательное число — списание.
+          </p>
+
+          <label>
+            <span>Причина операции</span>
+
+            <input
+              type="text"
+              value={coinDescription}
+              onChange={(event) => setCoinDescription(event.target.value)}
+              placeholder="Например: награда за активность"
+              required
+              disabled={loading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px',
+                marginTop: '8px',
+                borderRadius: '10px'
+              }}
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading || profiles.length === 0}
+          >
+            {loading ? 'Выполняется...' : 'Выполнить операцию'}
+          </button>
+        </form>
+
+        <div style={{ marginTop: '28px' }}>
+          <h3>Кошельки игроков</h3>
+
+          {profiles.length === 0 ? (
+            <p className="admin-empty">Участники не найдены.</p>
+          ) : (
+            <div className="admin-list">
+              {profiles.map((profile) => {
+                const wallet = wallets.find(
+                  (item) => item.user_id === profile.id
+                )
+
+                return (
+                  <article className="admin-member" key={profile.id}>
+                    <div>
+                      <strong>
+                        {profile.game_nickname || 'Без никнейма'}
+                      </strong>
+
+                      <span>
+                        {profile.server || 'Сервер не указан'}
+                      </span>
+                    </div>
+
+                    <div className="admin-member-rank">
+                      <strong>
+                        {Number(wallet?.balance ?? 0).toLocaleString('ru-RU')} CC
+                      </strong>
+                      <span>Баланс</span>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Заявки на вступление */}
       <div className="admin-block glass">
         <h3>Заявки на вступление в CORZA</h3>
@@ -258,7 +463,7 @@ function AdminPanel() {
                     </span>
 
                     <p>
-                      Опыт: {request.experience || 'Не указан'}
+                      Опыт: {request.expirience || 'Не указан'}
                     </p>
 
                     <p>
@@ -381,6 +586,7 @@ function AdminPanel() {
                   <strong>
                     {profile.game_nickname || 'Без никнейма'}
                   </strong>
+
                   <span>
                     {profile.server || 'Сервер не указан'}
                   </span>

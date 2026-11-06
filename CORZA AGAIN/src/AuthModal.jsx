@@ -16,6 +16,10 @@ function AuthModal({ open, onClose }) {
   const [profileLoading, setProfileLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Corza Coin
+  const [coinBalance, setCoinBalance] = useState(null)
+  const [coinTransactions, setCoinTransactions] = useState([])
+
   // Проверяем авторизацию
   useEffect(() => {
     let mounted = true
@@ -95,6 +99,58 @@ function AuthModal({ open, onClose }) {
     }
   }, [user])
 
+  // Загружаем кошелёк и историю Corza Coin
+  useEffect(() => {
+    let active = true
+
+    async function loadCoinData() {
+      if (!user) {
+        setCoinBalance(null)
+        setCoinTransactions([])
+        return
+      }
+
+      setCoinBalance(null)
+
+      const [walletResult, transactionsResult] = await Promise.all([
+        supabase
+          .from('corza_wallets')
+          .select('balance')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+
+        supabase
+          .from('corza_coin_transactions')
+          .select('id, amount, operation, description, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ])
+
+      if (!active) return
+
+      if (walletResult.error) {
+        setMessage('Ошибка загрузки кошелька: ' + walletResult.error.message)
+      } else {
+        setCoinBalance(Number(walletResult.data?.balance ?? 0))
+      }
+
+      if (transactionsResult.error) {
+        setMessage(
+          'Ошибка загрузки истории CC: ' + transactionsResult.error.message
+        )
+      } else {
+        setCoinTransactions(transactionsResult.data || [])
+      }
+    }
+
+    loadCoinData()
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
   // Вход через Discord
   async function handleDiscordLogin() {
     setLoading(true)
@@ -105,8 +161,8 @@ function AuthModal({ open, onClose }) {
         provider: 'discord',
         options: {
           redirectTo: window.location.origin,
-          scopes: 'identify email',
-        },
+          scopes: 'identify email'
+        }
       })
 
       if (error) throw error
@@ -141,7 +197,7 @@ function AuthModal({ open, onClose }) {
         .from('profiles')
         .update({
           game_nickname: cleanNickname,
-          server: cleanServer,
+          server: cleanServer
         })
         .eq('id', user.id)
         .select('game_nickname, server, rank, position, joined_at')
@@ -176,10 +232,10 @@ function AuthModal({ open, onClose }) {
           options: {
             data: {
               game_nickname: nickname.trim(),
-              server: server.trim(),
+              server: server.trim()
             },
-            emailRedirectTo: window.location.origin,
-          },
+            emailRedirectTo: window.location.origin
+          }
         })
 
         if (error) throw error
@@ -192,7 +248,7 @@ function AuthModal({ open, onClose }) {
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
-          password,
+          password
         })
 
         if (error) throw error
@@ -218,6 +274,8 @@ function AuthModal({ open, onClose }) {
     } else {
       setProfile(null)
       setIsAdmin(false)
+      setCoinBalance(null)
+      setCoinTransactions([])
       setPassword('')
       setMessage('')
       onClose()
@@ -233,8 +291,36 @@ function AuthModal({ open, onClose }) {
     return new Date(date).toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: 'long',
-      year: 'numeric',
+      year: 'numeric'
     })
+  }
+
+  // Форматирование даты и времени операции
+  function formatDateTime(date) {
+    if (!date) return ''
+
+    return new Date(date).toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Названия операций
+  function getOperationName(operation) {
+    const names = {
+      admin_credit: 'Начисление администрацией',
+      admin_debit: 'Списание администрацией',
+      purchase: 'Покупка',
+      promotion: 'Повышение ранга',
+      reward: 'Награда',
+      activity: 'Активность',
+      achievement: 'Достижение'
+    }
+
+    return names[operation] || operation || 'Операция'
   }
 
   if (!open) return null
@@ -402,6 +488,132 @@ function AuthModal({ open, onClose }) {
                   </div>
                 </div>
 
+                {/* Личный кошелёк Corza Coin */}
+                <div className="profile-section">
+                  <h3>Мой кошелёк</h3>
+
+                  <div
+                    style={{
+                      padding: '24px',
+                      marginTop: '14px',
+                      borderRadius: '18px',
+                      border: '1px solid rgba(150, 110, 255, 0.35)',
+                      background: 'linear-gradient(135deg, rgba(100, 70, 200, 0.2), rgba(40, 150, 255, 0.12))',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '13px',
+                        opacity: 0.75,
+                        marginBottom: '8px'
+                      }}
+                    >
+                      ТВОЙ БАЛАНС
+                    </span>
+
+                    <strong
+                      style={{
+                        display: 'block',
+                        fontSize: '34px',
+                        fontWeight: 900,
+                        color: '#b69aff'
+                      }}
+                    >
+                      {coinBalance === null
+                        ? 'Загрузка...'
+                        : `${coinBalance.toLocaleString('ru-RU')} CC`}
+                    </strong>
+
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        opacity: 0.65,
+                        marginTop: '8px'
+                      }}
+                    >
+                      CORZA COIN
+                    </span>
+                  </div>
+                </div>
+
+                {/* История операций */}
+                <div className="profile-section">
+                  <h3>История операций</h3>
+
+                  {coinBalance === null ? (
+                    <p className="auth-description">
+                      Загружаем историю операций...
+                    </p>
+                  ) : coinTransactions.length === 0 ? (
+                    <p className="auth-description">
+                      Операций пока нет. Здесь будут отображаться
+                      все начисления и списания CC.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      {coinTransactions.map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          style={{
+                            padding: '14px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(160, 140, 220, 0.2)',
+                            background: 'rgba(120, 100, 180, 0.08)'
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '12px'
+                            }}
+                          >
+                            <strong style={{ fontSize: '13px' }}>
+                              {getOperationName(transaction.operation)}
+                            </strong>
+
+                            <strong
+                              style={{
+                                color: Number(transaction.amount) > 0
+                                  ? '#78e6b0'
+                                  : '#ff8585',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {Number(transaction.amount) > 0 ? '+' : ''}
+                              {Number(transaction.amount).toLocaleString('ru-RU')} CC
+                            </strong>
+                          </div>
+
+                          <p
+                            style={{
+                              fontSize: '12px',
+                              opacity: 0.75,
+                              marginTop: '7px'
+                            }}
+                          >
+                            {transaction.description || 'Без описания'}
+                          </p>
+
+                          <small
+                            style={{
+                              display: 'block',
+                              opacity: 0.5,
+                              marginTop: '7px'
+                            }}
+                          >
+                            {formatDateTime(transaction.created_at)}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {message && (
                   <div className="auth-message">
                     {message}
@@ -440,7 +652,7 @@ function AuthModal({ open, onClose }) {
               disabled={loading}
               style={{
                 background: 'linear-gradient(100deg, #5865F2, #8065FF)',
-                marginBottom: '18px',
+                marginBottom: '18px'
               }}
             >
               {loading ? 'Подключаем Discord...' : '🎮 Войти через Discord'}

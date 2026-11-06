@@ -5,6 +5,8 @@ import AuthModal from './AuthModal'
 import AdminPanel from './AdminPanel'
 import JoinPage from './JoinPage'
 import PromotionPage from './PromotionPage'
+import TasksPage from './TasksPage'
+import DiscordWidget from './DiscordWidget'
 import { supabase } from './supabase'
 
 const leaders = [
@@ -13,7 +15,7 @@ const leaders = [
     name: 'Atlantica',
     description: 'Главное руководство CORZA',
     initials: 'A',
-    avatar: '',
+    avatar: '/leaders/atlantica.png',
   },
   {
     role: 'Глава семьи',
@@ -70,6 +72,12 @@ const features = [
     description: 'Раздел электронных заявлений на перевод между организациями.',
     link: '#transfers',
   },
+  {
+    number: '05',
+    title: 'Задания CORZA',
+    description: 'Выполняй задания и получай Corza Coin.',
+    link: '#tasks',
+  },
 ]
 
 const separatePages = [
@@ -78,6 +86,7 @@ const separatePages = [
   'government',
   'transfers',
   'admin',
+  'tasks',
 ]
 
 function getPageFromHash() {
@@ -89,11 +98,13 @@ function App() {
   const [authOpen, setAuthOpen] = useState(false)
   const [page, setPage] = useState(getPageFromHash)
 
-  // Данные авторизованного пользователя
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
 
-  // Проверяем авторизацию
+  const [coinLeaderboard, setCoinLeaderboard] = useState([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
+  const [leaderboardError, setLeaderboardError] = useState('')
+
   useEffect(() => {
     let active = true
 
@@ -127,7 +138,6 @@ function App() {
     }
   }, [])
 
-  // Загружаем профиль пользователя из Supabase
   useEffect(() => {
     let active = true
 
@@ -161,7 +171,37 @@ function App() {
     }
   }, [user])
 
-  // Навигация по страницам
+  useEffect(() => {
+    let active = true
+
+    async function loadCoinLeaderboard() {
+      setLeaderboardLoading(true)
+      setLeaderboardError('')
+
+      const { data, error } = await supabase.rpc(
+        'get_corza_coin_leaderboard'
+      )
+
+      if (!active) return
+
+      if (error) {
+        console.error('Ошибка загрузки рейтинга CC:', error)
+        setLeaderboardError(error.message)
+        setCoinLeaderboard([])
+      } else {
+        setCoinLeaderboard(data || [])
+      }
+
+      setLeaderboardLoading(false)
+    }
+
+    loadCoinLeaderboard()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
@@ -194,11 +234,6 @@ function App() {
     }
   }, [])
 
-  function goHome() {
-    window.location.hash = 'home'
-  }
-
-  // Имя для отображения в шапке
   const accountName =
     profile?.game_nickname ||
     user?.user_metadata?.game_nickname ||
@@ -227,12 +262,13 @@ function App() {
           <a href="#home">Главная</a>
           <a href="#about">О семье</a>
           <a href="#leaders">Руководство</a>
+          <a href="#coins">Рейтинг CC</a>
+          <a href="#tasks">Задания</a>
           <a href="#join">Вступление</a>
           <a href="#promotion">Повышение</a>
           <a href="#government">Структуры</a>
         </nav>
 
-        {/* Если пользователь авторизован — показываем аккаунт */}
         {user ? (
           <button
             className="account-chip"
@@ -281,6 +317,7 @@ function App() {
                   <a href="#join" className="primary-button">
                     Присоединиться <span>↗</span>
                   </a>
+
                   <a href="#about" className="secondary-button">
                     Узнать о нас
                   </a>
@@ -291,10 +328,12 @@ function App() {
                     <strong>01</strong>
                     <span>Единая команда</span>
                   </div>
+
                   <div>
                     <strong>∞</strong>
                     <span>Возможности</span>
                   </div>
+
                   <div>
                     <strong>24/7</strong>
                     <span>Развитие семьи</span>
@@ -305,9 +344,11 @@ function App() {
               <div className="orbital">
                 <div className="orbit orbit-one" />
                 <div className="orbit orbit-two" />
+
                 <div className="planet">
                   <span>C</span>
                 </div>
+
                 <div className="orbit-label">C O R Z A</div>
 
                 <div className="floating-card glass">
@@ -323,9 +364,11 @@ function App() {
             <section className="about-section" id="about">
               <div className="section-heading">
                 <span className="section-label">01 / О ПРОЕКТЕ</span>
+
                 <h2>
                   Созданы для <span>большего.</span>
                 </h2>
+
                 <p>
                   Мы строим сильную государственную семью, где каждый участник
                   может развиваться, достигать целей и вносить вклад в общее дело.
@@ -337,11 +380,15 @@ function App() {
               <div className="section-top">
                 <div>
                   <span className="section-label">02 / УПРАВЛЕНИЕ</span>
+
                   <h2>
                     Наше <span>руководство.</span>
                   </h2>
                 </div>
-                <p>Люди, отвечающие за развитие и стабильность CORZA.</p>
+
+                <p>
+                  Люди, отвечающие за развитие и стабильность CORZA.
+                </p>
               </div>
 
               <div className="leaders-grid">
@@ -353,7 +400,11 @@ function App() {
                         alt={leader.name}
                       />
                     </div>
-                    <span className="leader-role">{leader.role}</span>
+
+                    <span className="leader-role">
+                      {leader.role}
+                    </span>
+
                     <h3>{leader.name}</h3>
                     <p>{leader.description}</p>
                     <div className="leader-line" />
@@ -362,9 +413,167 @@ function App() {
               </div>
             </section>
 
+            <section
+              className="features-section"
+              id="coins"
+              style={{ scrollMarginTop: '110px' }}
+            >
+              <div className="section-top">
+                <div>
+                  <span className="section-label">
+                    03 / CORZA ECONOMY
+                  </span>
+
+                  <h2>
+                    TOP-100 <span>Corza Coin.</span>
+                  </h2>
+                </div>
+
+                <p>
+                  Самые богатые участники государственной семьи CORZA.
+                </p>
+              </div>
+
+              <div
+                className="glass"
+                style={{
+                  padding: '24px',
+                  borderRadius: '22px',
+                  marginTop: '30px'
+                }}
+              >
+                {leaderboardLoading ? (
+                  <p style={{ textAlign: 'center', padding: '30px' }}>
+                    Загружаем рейтинг CORZA...
+                  </p>
+                ) : leaderboardError ? (
+                  <div style={{ textAlign: 'center', padding: '30px' }}>
+                    <h3>Не удалось загрузить рейтинг</h3>
+                    <p style={{ opacity: 0.7, marginTop: '10px' }}>
+                      {leaderboardError}
+                    </p>
+                    <button
+                      className="secondary-button"
+                      style={{ marginTop: '18px' }}
+                      onClick={async () => {
+                        setLeaderboardLoading(true)
+                        setLeaderboardError('')
+
+                        const { data, error } = await supabase.rpc(
+                          'get_corza_coin_leaderboard'
+                        )
+
+                        if (error) {
+                          setLeaderboardError(error.message)
+                        } else {
+                          setCoinLeaderboard(data || [])
+                        }
+
+                        setLeaderboardLoading(false)
+                      }}
+                    >
+                      Повторить загрузку
+                    </button>
+                  </div>
+                ) : coinLeaderboard.length === 0 ? (
+                  <p style={{ textAlign: 'center', padding: '30px' }}>
+                    Пока никто не попал в рейтинг.
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {coinLeaderboard.map((player, index) => (
+                      <div
+                        key={`${player.player_name}-${index}`}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '48px minmax(0, 1fr) auto',
+                          alignItems: 'center',
+                          gap: '14px',
+                          padding: '15px',
+                          borderRadius: '14px',
+                          border: '1px solid rgba(160, 140, 220, 0.18)',
+                          background: index < 3
+                            ? 'linear-gradient(100deg, rgba(130, 90, 220, 0.18), rgba(40, 150, 255, 0.08))'
+                            : 'rgba(120, 100, 180, 0.06)'
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: index < 3 ? '20px' : '15px',
+                            fontWeight: 900,
+                            textAlign: 'center',
+                            color: index === 0
+                              ? '#ffd66b'
+                              : index === 1
+                                ? '#d6dce8'
+                                : index === 2
+                                  ? '#d99a70'
+                                  : '#a99bd2'
+                          }}
+                        >
+                          {index === 0
+                            ? '🥇'
+                            : index === 1
+                              ? '🥈'
+                              : index === 2
+                                ? '🥉'
+                                : `#${index + 1}`}
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <strong
+                            style={{
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                          >
+                            {player.player_name}
+                          </strong>
+
+                          <span
+                            style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              opacity: 0.6,
+                              marginTop: '4px'
+                            }}
+                          >
+                            {player.player_server || 'Сервер не указан'}
+                          </span>
+                        </div>
+
+                        <strong
+                          style={{
+                            color: '#b69aff',
+                            whiteSpace: 'nowrap',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {Number(player.coin_balance).toLocaleString('ru-RU')} CC
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p
+                  style={{
+                    textAlign: 'center',
+                    opacity: 0.5,
+                    fontSize: '12px',
+                    marginTop: '18px'
+                  }}
+                >
+                  Рейтинг формируется автоматически на основе баланса игроков.
+                </p>
+              </div>
+            </section>
+
             <section className="features-section" id="features">
               <div className="section-heading">
-                <span className="section-label">03 / ИНФРАСТРУКТУРА</span>
+                <span className="section-label">04 / ИНФРАСТРУКТУРА</span>
+
                 <h2>
                   Всё необходимое. <span>В одном месте.</span>
                 </h2>
@@ -389,12 +598,17 @@ function App() {
             <section className="join-section">
               <div className="join-card glass">
                 <span className="section-label">
-                  04 / ТВОЯ ИСТОРИЯ НАЧИНАЕТСЯ ЗДЕСЬ
+                  05 / ТВОЯ ИСТОРИЯ НАЧИНАЕТСЯ ЗДЕСЬ
                 </span>
+
                 <h2>
                   Стань частью <span>CORZA.</span>
                 </h2>
-                <p>Твоя следующая глава начинается с одного решения.</p>
+
+                <p>
+                  Твоя следующая глава начинается с одного решения.
+                </p>
+
                 <a className="primary-button" href="#join">
                   Подать заявку <span>↗</span>
                 </a>
@@ -402,6 +616,8 @@ function App() {
             </section>
           </>
         )}
+
+        {page === 'tasks' && <TasksPage />}
 
         {page === 'join' && (
           <JoinPage onOpenAuth={() => setAuthOpen(true)} />
@@ -414,15 +630,21 @@ function App() {
         {page === 'government' && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / GOVERNMENT</span>
-            <h1>Государственные <span>структуры.</span></h1>
+
+            <h1>
+              Государственные <span>структуры.</span>
+            </h1>
+
             <p>
               Здесь будет размещена информация о руководстве LSPD, LSCSD,
               FIB и GOV на серверах Majestic RP.
             </p>
+
             <p className="page-note">
               Состав организаций и занимаемые CORZA руководящие должности
               добавим отдельным этапом.
             </p>
+
             <a className="secondary-button" href="#home">
               На главную
             </a>
@@ -432,14 +654,20 @@ function App() {
         {page === 'transfers' && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / TRANSFERS</span>
-            <h1>Заявления на <span>перевод.</span></h1>
+
+            <h1>
+              Заявления на <span>перевод.</span>
+            </h1>
+
             <p>
               Раздел для переводов из другой фракции в организацию CORZA
               и из CORZA в другую фракцию будет добавлен следующим этапом.
             </p>
+
             <p className="page-note">
               Пока отправка заявлений на перевод не подключена к базе данных.
             </p>
+
             <a className="secondary-button" href="#home">
               На главную
             </a>
@@ -447,15 +675,6 @@ function App() {
         )}
 
         {page === 'admin' && <AdminPanel />}
-
-        {page === 'home' && window.location.hash === '#not-found' && (
-          <section className="standalone-page glass">
-            <h1>Страница не найдена</h1>
-            <button className="primary-button" onClick={goHome}>
-              Вернуться на главную
-            </button>
-          </section>
-        )}
       </main>
 
       <footer>
@@ -465,9 +684,13 @@ function App() {
         </a>
 
         <p>© 2026 CORZA FAMILY. ALL RIGHTS RESERVED.</p>
+
         <span>MAJESTIC ROLEPLAY</span>
+
         <a href="#admin">Администрирование</a>
       </footer>
+
+      <DiscordWidget />
     </div>
   )
 }
