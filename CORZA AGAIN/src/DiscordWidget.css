@@ -4,10 +4,11 @@
   right: 25px;
   bottom: 25px;
   width: 310px;
+  box-sizing: border-box;
   padding: 18px;
   z-index: 9999;
 
-  background: rgba(15, 20, 48, 0.82);
+  background: rgba(15, 20, 48, 0.88);
   border: 1px solid rgba(130, 150, 255, 0.35);
   border-radius: 20px;
 
@@ -20,6 +21,51 @@
 
   color: white;
   font-family: inherit;
+
+  transition: transform 0.45s ease;
+}
+
+/* СКРЫТИЕ ПАНЕЛИ */
+.discord-widget-hidden {
+  transform: translateX(calc(100% - 43px));
+}
+
+/* КНОПКА СО СТРЕЛОЧКОЙ */
+.discord-widget-toggle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 38px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(150, 160, 255, 0.4);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+
+  background: linear-gradient(135deg, #5865f2, #925cff);
+  color: white;
+
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+
+  box-shadow: 0 0 18px rgba(100, 100, 255, 0.3);
+  transition: 0.25s;
+}
+
+.discord-widget-toggle:hover {
+  background: linear-gradient(135deg, #7180ff, #ad78ff);
+}
+
+/* СОДЕРЖИМОЕ */
+.discord-widget-content {
+  padding-left: 35px;
 }
 
 .discord-widget-info {
@@ -32,6 +78,8 @@
 .discord-widget-icon {
   width: 45px;
   height: 45px;
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -57,6 +105,7 @@
   margin-left: auto;
   font-size: 10px;
   color: #aeb8ff;
+  white-space: nowrap;
 }
 
 .discord-widget-status span {
@@ -91,6 +140,7 @@
   box-shadow: 0 5px 20px rgba(100, 100, 255, 0.4);
 }
 
+/* МОБИЛЬНАЯ ВЕРСИЯ */
 @media (max-width: 480px) {
   .discord-widget {
     right: 12px;
