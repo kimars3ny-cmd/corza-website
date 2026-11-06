@@ -6,8 +6,6 @@ function AuthModal({ open, onClose }) {
   const [mode, setMode] = useState('register')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [nickname, setNickname] = useState('')
-  const [server, setServer] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -172,52 +170,6 @@ function AuthModal({ open, onClose }) {
     }
   }
 
-  // Сохраняем игровой профиль
-  async function handleProfileSave(event) {
-    event.preventDefault()
-    setMessage('')
-
-    const cleanNickname = nickname.trim()
-    const cleanServer = server.trim()
-
-    if (cleanNickname.length < 2) {
-      setMessage('Игровой никнейм должен содержать минимум 2 символа.')
-      return
-    }
-
-    if (!cleanServer) {
-      setMessage('Укажи сервер Majestic RP.')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          game_nickname: cleanNickname,
-          server: cleanServer
-        })
-        .eq('id', user.id)
-        .select('game_nickname, server, rank, position, joined_at')
-        .maybeSingle()
-
-      if (error) throw error
-
-      if (!data) {
-        throw new Error('Профиль не найден. Обратись к администрации CORZA.')
-      }
-
-      setProfile(data)
-      setMessage('Профиль CORZA успешно заполнен!')
-    } catch (error) {
-      setMessage('Не удалось сохранить профиль: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // Регистрация и вход по электронной почте
   async function handleSubmit(event) {
     event.preventDefault()
@@ -230,10 +182,6 @@ function AuthModal({ open, onClose }) {
           email,
           password,
           options: {
-            data: {
-              game_nickname: nickname.trim(),
-              server: server.trim()
-            },
             emailRedirectTo: window.location.origin
           }
         })
@@ -316,6 +264,7 @@ function AuthModal({ open, onClose }) {
       purchase: 'Покупка',
       promotion: 'Повышение ранга',
       reward: 'Награда',
+      task_reward: 'Награда за задание',
       activity: 'Активность',
       achievement: 'Достижение'
     }
@@ -327,7 +276,6 @@ function AuthModal({ open, onClose }) {
 
   const accountName =
     profile?.game_nickname ||
-    user?.user_metadata?.game_nickname ||
     user?.user_metadata?.global_name ||
     user?.user_metadata?.name ||
     user?.user_metadata?.user_name ||
@@ -335,11 +283,6 @@ function AuthModal({ open, onClose }) {
     'Игрок CORZA'
 
   const accountInitial = accountName.charAt(0).toUpperCase()
-
-  const needsProfileSetup =
-    user &&
-    !profileLoading &&
-    (!profile?.game_nickname?.trim() || !profile?.server?.trim())
 
   return (
     <div className="auth-overlay" onClick={onClose}>
@@ -366,58 +309,10 @@ function AuthModal({ open, onClose }) {
           <div className="auth-content">
             {profileLoading ? (
               <>
-                <h2>Загрузка профиля</h2>
+                <h2>Загрузка аккаунта</h2>
                 <p className="auth-description">
                   Подготавливаем твой личный кабинет CORZA...
                 </p>
-              </>
-            ) : needsProfileSetup ? (
-              <>
-                <h2>Заполни профиль</h2>
-
-                <p className="auth-description">
-                  Добро пожаловать в CORZA! Осталось указать
-                  игровой никнейм и сервер Majestic RP.
-                </p>
-
-                <div className="profile-section">
-                  <h3>Данные игрока</h3>
-
-                  <form onSubmit={handleProfileSave}>
-                    <label>Игровой никнейм</label>
-                    <input
-                      type="text"
-                      placeholder="Например, Senya_Corza"
-                      value={nickname}
-                      onChange={(event) => setNickname(event.target.value)}
-                      minLength={2}
-                      required
-                    />
-
-                    <label>Сервер Majestic RP</label>
-                    <input
-                      type="text"
-                      placeholder="Например, Memphis"
-                      value={server}
-                      onChange={(event) => setServer(event.target.value)}
-                      required
-                    />
-
-                    <button
-                      className="auth-submit"
-                      type="submit"
-                      disabled={loading}
-                    >
-                      {loading ? 'Сохраняем...' : 'Сохранить профиль'}
-                    </button>
-                  </form>
-                </div>
-
-                {message && (
-                  <div className="auth-message">
-                    {message}
-                  </div>
-                )}
               </>
             ) : (
               <>
@@ -683,29 +578,6 @@ function AuthModal({ open, onClose }) {
             </div>
 
             <form onSubmit={handleSubmit}>
-              {mode === 'register' && (
-                <>
-                  <label>Игровой ник</label>
-                  <input
-                    type="text"
-                    placeholder="Например, Ivan_Corza"
-                    value={nickname}
-                    onChange={(event) => setNickname(event.target.value)}
-                    required
-                    minLength={2}
-                  />
-
-                  <label>Сервер Majestic RP</label>
-                  <input
-                    type="text"
-                    placeholder="Например, Memphis"
-                    value={server}
-                    onChange={(event) => setServer(event.target.value)}
-                    required
-                  />
-                </>
-              )}
-
               <label>Электронная почта</label>
               <input
                 type="email"
