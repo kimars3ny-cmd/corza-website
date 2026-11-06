@@ -76,7 +76,6 @@ function AuthModal({ open, onClose }) {
         setProfile(data)
       }
 
-      // Проверяем наличие пользователя в site_admins
       const { data: adminData, error: adminError } = await supabase
         .from('site_admins')
         .select('user_id')
@@ -96,7 +95,74 @@ function AuthModal({ open, onClose }) {
     }
   }, [user])
 
-  // Регистрация и вход
+  // Вход через Discord
+  async function handleDiscordLogin() {
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: window.location.origin,
+          scopes: 'identify email',
+        },
+      })
+
+      if (error) throw error
+    } catch (error) {
+      setMessage('Ошибка входа через Discord: ' + error.message)
+      setLoading(false)
+    }
+  }
+
+  // Сохраняем игровой профиль
+  async function handleProfileSave(event) {
+    event.preventDefault()
+    setMessage('')
+
+    const cleanNickname = nickname.trim()
+    const cleanServer = server.trim()
+
+    if (cleanNickname.length < 2) {
+      setMessage('Игровой никнейм должен содержать минимум 2 символа.')
+      return
+    }
+
+    if (!cleanServer) {
+      setMessage('Укажи сервер Majestic RP.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          game_nickname: cleanNickname,
+          server: cleanServer,
+        })
+        .eq('id', user.id)
+        .select('game_nickname, server, rank, position, joined_at')
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (!data) {
+        throw new Error('Профиль не найден. Обратись к администрации CORZA.')
+      }
+
+      setProfile(data)
+      setMessage('Профиль CORZA успешно заполнен!')
+    } catch (error) {
+      setMessage('Не удалось сохранить профиль: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Регистрация и вход по электронной почте
   async function handleSubmit(event) {
     event.preventDefault()
     setMessage('')
@@ -176,9 +242,18 @@ function AuthModal({ open, onClose }) {
   const accountName =
     profile?.game_nickname ||
     user?.user_metadata?.game_nickname ||
+    user?.user_metadata?.global_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.user_name ||
+    user?.email ||
     'Игрок CORZA'
 
   const accountInitial = accountName.charAt(0).toUpperCase()
+
+  const needsProfileSetup =
+    user &&
+    !profileLoading &&
+    (!profile?.game_nickname?.trim() || !profile?.server?.trim())
 
   return (
     <div className="auth-overlay" onClick={onClose}>
@@ -203,46 +278,107 @@ function AuthModal({ open, onClose }) {
 
         {user ? (
           <div className="auth-content">
-            <h2>Мой аккаунт</h2>
-
-            <p className="auth-description">
-              Добро пожаловать в государственную семью CORZA.
-            </p>
-
-            <div className="profile-avatar-area">
-              <div className="profile-avatar-wrapper">
-                <div className="profile-avatar">
-                  {accountInitial}
-                </div>
-              </div>
-            </div>
-
-            {isAdmin && (
-              <div className="admin-profile-badge">
-                <span className="admin-profile-icon">♛</span>
-                АДМИНИСТРАТОР
-              </div>
-            )}
-
-            <div className="profile-section">
-              <h3>Информация об аккаунте</h3>
-
-              {profileLoading ? (
+            {profileLoading ? (
+              <>
+                <h2>Загрузка профиля</h2>
                 <p className="auth-description">
-                  Загружаем профиль...
+                  Подготавливаем твой личный кабинет CORZA...
                 </p>
-              ) : (
-                <>
+              </>
+            ) : needsProfileSetup ? (
+              <>
+                <h2>Заполни профиль</h2>
+
+                <p className="auth-description">
+                  Добро пожаловать в CORZA! Осталось указать
+                  игровой никнейм и сервер Majestic RP.
+                </p>
+
+                <div className="profile-section">
+                  <h3>Данные игрока</h3>
+
+                  <form onSubmit={handleProfileSave}>
+                    <label>Игровой никнейм</label>
+                    <input
+                      type="text"
+                      placeholder="Например, Senya_Corza"
+                      value={nickname}
+                      onChange={(event) => setNickname(event.target.value)}
+                      minLength={2}
+                      required
+                    />
+
+                    <label>Сервер Majestic RP</label>
+                    <input
+                      type="text"
+                      placeholder="Например, Memphis"
+                      value={server}
+                      onChange={(event) => setServer(event.target.value)}
+                      required
+                    />
+
+                    <button
+                      className="auth-submit"
+                      type="submit"
+                      disabled={loading}
+                    >
+                      {loading ? 'Сохраняем...' : 'Сохранить профиль'}
+                    </button>
+                  </form>
+                </div>
+
+                {message && (
+                  <div className="auth-message">
+                    {message}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h2>Мой аккаунт</h2>
+
+                <p className="auth-description">
+                  Добро пожаловать в государственную семью CORZA.
+                </p>
+
+                <div className="profile-avatar-area">
+                  <div className="profile-avatar-wrapper">
+                    <div className="profile-avatar">
+                      {accountInitial}
+                    </div>
+                  </div>
+                </div>
+
+                {isAdmin && (
+                  <div className="admin-profile-badge">
+                    <span className="admin-profile-icon">♛</span>
+                    АДМИНИСТРАТОР
+                  </div>
+                )}
+
+                <div className="profile-section">
+                  <h3>Информация об аккаунте</h3>
+
                   <div className="auth-user">
                     <span>Игровой никнейм</span>
-                    <strong>
-                      {profile?.game_nickname || 'Не указан'}
-                    </strong>
+                    <strong>{profile?.game_nickname || 'Не указан'}</strong>
                   </div>
 
                   <div className="auth-user">
                     <span>Электронная почта</span>
-                    <strong>{user.email}</strong>
+                    <strong>{user.email || 'Не указана'}</strong>
+                  </div>
+
+                  <div className="auth-user">
+                    <span>Discord</span>
+                    <strong>
+                      {user.app_metadata?.provider === 'discord'
+                        ? user.user_metadata?.global_name ||
+                          user.user_metadata?.name ||
+                          user.user_metadata?.user_name ||
+                          'Подключён'
+                        : 'Не подключён'}
+                    </strong>
                   </div>
 
                   <div className="auth-user">
@@ -264,24 +400,24 @@ function AuthModal({ open, onClose }) {
                     <span>Дата вступления</span>
                     <strong>{formatDate(profile?.joined_at)}</strong>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            {message && (
-              <div className="auth-message">
-                {message}
-              </div>
+                {message && (
+                  <div className="auth-message">
+                    {message}
+                  </div>
+                )}
+
+                <button
+                  className="auth-submit auth-logout"
+                  onClick={handleLogout}
+                  type="button"
+                  disabled={loading}
+                >
+                  {loading ? 'Подожди...' : 'Выйти из аккаунта'}
+                </button>
+              </>
             )}
-
-            <button
-              className="auth-submit auth-logout"
-              onClick={handleLogout}
-              type="button"
-              disabled={loading}
-            >
-              {loading ? 'Подожди...' : 'Выйти из аккаунта'}
-            </button>
           </div>
         ) : (
           <div className="auth-content">
@@ -296,6 +432,19 @@ function AuthModal({ open, onClose }) {
                 ? 'Стань частью государственной семьи CORZA.'
                 : 'Войди в свой личный кабинет CORZA.'}
             </p>
+
+            <button
+              className="auth-submit"
+              type="button"
+              onClick={handleDiscordLogin}
+              disabled={loading}
+              style={{
+                background: 'linear-gradient(100deg, #5865F2, #8065FF)',
+                marginBottom: '18px',
+              }}
+            >
+              {loading ? 'Подключаем Discord...' : '🎮 Войти через Discord'}
+            </button>
 
             <div className="auth-tabs">
               <button
