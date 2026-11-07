@@ -1,4 +1,4 @@
-jsx
+
 import { useEffect, useState } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
@@ -100,13 +100,11 @@ function App() {
 
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [adminRole, setAdminRole] = useState(null)
 
   const [coinLeaderboard, setCoinLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState('')
 
-  // Получение авторизованного пользователя
   useEffect(() => {
     let active = true
 
@@ -140,66 +138,30 @@ function App() {
     }
   }, [])
 
-  // Загрузка профиля и определение роли пользователя
   useEffect(() => {
     let active = true
 
     async function loadProfile() {
       if (!user) {
         setProfile(null)
-        setAdminRole(null)
         return
       }
 
-      const [
-        profileResult,
-        ownerResult,
-        levelOneResult,
-        adminResult
-      ] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('game_nickname')
-          .eq('id', user.id)
-          .maybeSingle(),
-
-        supabase.rpc('is_corza_owner'),
-        supabase.rpc('is_corza_admin_level_one'),
-        supabase.rpc('is_corza_admin')
-      ])
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('game_nickname')
+        .eq('id', user.id)
+        .maybeSingle()
 
       if (!active) return
 
-      if (profileResult.error) {
-        console.error('Ошибка загрузки профиля:', profileResult.error)
+      if (error) {
+        console.error('Ошибка загрузки профиля:', error)
         setProfile(null)
-      } else {
-        setProfile(profileResult.data)
+        return
       }
 
-      if (!adminResult.error && adminResult.data === true) {
-        if (!ownerResult.error && ownerResult.data === true) {
-          setAdminRole({
-            title: 'Владелец',
-            className: 'owner'
-          })
-        } else if (
-          !levelOneResult.error &&
-          levelOneResult.data === true
-        ) {
-          setAdminRole({
-            title: 'Администратор',
-            className: 'administrator'
-          })
-        } else {
-          setAdminRole({
-            title: 'Модератор',
-            className: 'moderator'
-          })
-        }
-      } else {
-        setAdminRole(null)
-      }
+      setProfile(data)
     }
 
     loadProfile()
@@ -209,7 +171,6 @@ function App() {
     }
   }, [user])
 
-  // Загрузка рейтинга Corza Coin
   useEffect(() => {
     let active = true
 
@@ -241,7 +202,6 @@ function App() {
     }
   }, [])
 
-  // Переключение страниц
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
@@ -298,22 +258,24 @@ function App() {
           <span>CORZA</span>
         </a>
 
-        <nav>
-          <a href="#home">Главная</a>
-          <a href="#about">О семье</a>
-          <a href="#leaders">Руководство</a>
-          <a href="#coins">Рейтинг CC</a>
+        
+  <nav>
+    <a href="#home">Главная</a>
+    <a href="#about">О семье</a>
+    <a href="#leaders">Руководство</a>
+    <a href="#coins">Рейтинг CC</a>
 
-          {user && (
-            <>
-              <a href="#tasks">Задания</a>
-              <a href="#join">Вступление</a>
-              <a href="#promotion">Повышение</a>
-            </>
-          )}
+    {user && (
+    <>
+      <a href="#tasks">Задания</a>
+      <a href="#join">Вступление</a>
+      <a href="#promotion">Повышение</a>
+    </>
+    )}
 
-          <a href="#government">Структуры</a>
-        </nav>
+  <a href="#government">Структуры</a>
+</nav>
+
 
         {user ? (
           <button
@@ -325,17 +287,9 @@ function App() {
               {accountInitial}
             </div>
 
-            <div className="account-info">
-              <span className="account-name">
-                {accountName}
-              </span>
-
-              {adminRole && (
-                <span className={`account-role ${adminRole.className}`}>
-                  {adminRole.title}
-                </span>
-              )}
-            </div>
+            <span className="account-name">
+              {accountName}
+            </span>
           </button>
         ) : (
           <button

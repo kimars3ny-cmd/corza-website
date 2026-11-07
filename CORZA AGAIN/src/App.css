@@ -2486,32 +2486,3 @@ footer > span {
   }
 }
 
-.account-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-}
-
-.account-role {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-
-.account-role.owner {
-  color: #ffd84d;
-  text-shadow: 0 0 12px rgba(255, 216, 77, 0.45);
-}
-
-.account-role.administrator {
-  color: #ff525f;
-  text-shadow: 0 0 12px rgba(255, 82, 95, 0.4);
-}
-
-.account-role.moderator {
-  color: #45e68b;
-  text-shadow: 0 0 12px rgba(69, 230, 139, 0.4);
-}
