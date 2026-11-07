@@ -3,11 +3,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 function AuthModal({ open, onClose }) {
-  const [mode, setMode] = useState('register')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingProvider, setLoadingProvider] = useState('')
 
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -37,15 +35,15 @@ function AuthModal({ open, onClose }) {
 
     checkSession()
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null)
-      }
-    )
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
 
     return () => {
       mounted = false
-      listener.subscription.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [])
 
@@ -78,15 +76,13 @@ function AuthModal({ open, onClose }) {
         setProfile(data)
       }
 
-      const { data: adminData, error: adminError } = await supabase
-        .from('site_admins')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .maybeSingle()
+      const { data: adminData, error: adminError } = await supabase.rpc(
+        'is_corza_admin'
+      )
 
       if (!active) return
 
-      setIsAdmin(!adminError && !!adminData)
+      setIsAdmin(!adminError && adminData === true)
       setProfileLoading(false)
     }
 
@@ -122,7 +118,7 @@ function AuthModal({ open, onClose }) {
           .select('id, amount, operation, description, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(10)
+          .limit(10),
       ])
 
       if (!active) return
@@ -149,64 +145,29 @@ function AuthModal({ open, onClose }) {
     }
   }, [user])
 
-  // Вход через Discord
-  async function handleDiscordLogin() {
+  // Вход через Google или Discord
+  async function handleOAuthLogin(provider) {
     setLoading(true)
+    setLoadingProvider(provider)
     setMessage('')
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
+        provider,
         options: {
           redirectTo: window.location.origin,
-          scopes: 'identify email'
-        }
+          ...(provider === 'discord'
+            ? { scopes: 'identify email' }
+            : {}),
+        },
       })
 
       if (error) throw error
     } catch (error) {
-      setMessage('Ошибка входа через Discord: ' + error.message)
+      console.error('Ошибка OAuth:', error)
+      setMessage('Не удалось войти: ' + error.message)
       setLoading(false)
-    }
-  }
-
-  // Регистрация и вход по электронной почте
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setMessage('')
-    setLoading(true)
-
-    try {
-      if (mode === 'register') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin
-          }
-        })
-
-        if (error) throw error
-
-        if (data.session) {
-          setMessage('Аккаунт CORZA успешно создан!')
-        } else {
-          setMessage('Аккаунт создан. Проверь почту и подтверди регистрацию.')
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-
-        if (error) throw error
-
-        setMessage('Ты успешно вошёл в аккаунт CORZA!')
-      }
-    } catch (error) {
-      setMessage(error.message)
-    } finally {
-      setLoading(false)
+      setLoadingProvider('')
     }
   }
 
@@ -224,7 +185,6 @@ function AuthModal({ open, onClose }) {
       setIsAdmin(false)
       setCoinBalance(null)
       setCoinTransactions([])
-      setPassword('')
       setMessage('')
       onClose()
     }
@@ -239,7 +199,7 @@ function AuthModal({ open, onClose }) {
     return new Date(date).toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
     })
   }
 
@@ -252,7 +212,7 @@ function AuthModal({ open, onClose }) {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -266,7 +226,7 @@ function AuthModal({ open, onClose }) {
       reward: 'Награда',
       task_reward: 'Награда за задание',
       activity: 'Активность',
-      achievement: 'Достижение'
+      achievement: 'Достижение',
     }
 
     return names[operation] || operation || 'Операция'
@@ -283,6 +243,16 @@ function AuthModal({ open, onClose }) {
     'Игрок CORZA'
 
   const accountInitial = accountName.charAt(0).toUpperCase()
+
+  const authProvider =
+    user?.app_metadata?.provider ||
+    user?.identities?.[0]?.provider ||
+    ''
+
+  const discordName =
+    user?.user_metadata?.global_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.user_name
 
   return (
     <div className="auth-overlay" onClick={onClose}>
@@ -342,7 +312,9 @@ function AuthModal({ open, onClose }) {
 
                   <div className="auth-user">
                     <span>Игровой никнейм</span>
-                    <strong>{profile?.game_nickname || 'Не указан'}</strong>
+                    <strong>
+                      {profile?.game_nickname || 'Не указан'}
+                    </strong>
                   </div>
 
                   <div className="auth-user">
@@ -351,16 +323,22 @@ function AuthModal({ open, onClose }) {
                   </div>
 
                   <div className="auth-user">
-                    <span>Discord</span>
+                    <span>Способ входа</span>
                     <strong>
-                      {user.app_metadata?.provider === 'discord'
-                        ? user.user_metadata?.global_name ||
-                          user.user_metadata?.name ||
-                          user.user_metadata?.user_name ||
-                          'Подключён'
-                        : 'Не подключён'}
+                      {authProvider === 'discord'
+                        ? 'Discord'
+                        : authProvider === 'google'
+                          ? 'Google'
+                          : authProvider || 'Не определён'}
                     </strong>
                   </div>
+
+                  {authProvider === 'discord' && (
+                    <div className="auth-user">
+                      <span>Discord</span>
+                      <strong>{discordName || 'Подключён'}</strong>
+                    </div>
+                  )}
 
                   <div className="auth-user">
                     <span>Сервер Majestic RP</span>
@@ -383,7 +361,7 @@ function AuthModal({ open, onClose }) {
                   </div>
                 </div>
 
-                {/* Личный кошелёк Corza Coin */}
+                {/* Кошелёк Corza Coin */}
                 <div className="profile-section">
                   <h3>Мой кошелёк</h3>
 
@@ -393,8 +371,9 @@ function AuthModal({ open, onClose }) {
                       marginTop: '14px',
                       borderRadius: '18px',
                       border: '1px solid rgba(150, 110, 255, 0.35)',
-                      background: 'linear-gradient(135deg, rgba(100, 70, 200, 0.2), rgba(40, 150, 255, 0.12))',
-                      textAlign: 'center'
+                      background:
+                        'linear-gradient(135deg, rgba(100, 70, 200, 0.2), rgba(40, 150, 255, 0.12))',
+                      textAlign: 'center',
                     }}
                   >
                     <span
@@ -402,7 +381,7 @@ function AuthModal({ open, onClose }) {
                         display: 'block',
                         fontSize: '13px',
                         opacity: 0.75,
-                        marginBottom: '8px'
+                        marginBottom: '8px',
                       }}
                     >
                       ТВОЙ БАЛАНС
@@ -413,7 +392,7 @@ function AuthModal({ open, onClose }) {
                         display: 'block',
                         fontSize: '34px',
                         fontWeight: 900,
-                        color: '#b69aff'
+                        color: '#b69aff',
                       }}
                     >
                       {coinBalance === null
@@ -426,7 +405,7 @@ function AuthModal({ open, onClose }) {
                         display: 'block',
                         fontSize: '12px',
                         opacity: 0.65,
-                        marginTop: '8px'
+                        marginTop: '8px',
                       }}
                     >
                       CORZA COIN
@@ -456,7 +435,7 @@ function AuthModal({ open, onClose }) {
                             padding: '14px',
                             borderRadius: '12px',
                             border: '1px solid rgba(160, 140, 220, 0.2)',
-                            background: 'rgba(120, 100, 180, 0.08)'
+                            background: 'rgba(120, 100, 180, 0.08)',
                           }}
                         >
                           <div
@@ -464,7 +443,7 @@ function AuthModal({ open, onClose }) {
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              gap: '12px'
+                              gap: '12px',
                             }}
                           >
                             <strong style={{ fontSize: '13px' }}>
@@ -473,10 +452,11 @@ function AuthModal({ open, onClose }) {
 
                             <strong
                               style={{
-                                color: Number(transaction.amount) > 0
-                                  ? '#78e6b0'
-                                  : '#ff8585',
-                                whiteSpace: 'nowrap'
+                                color:
+                                  Number(transaction.amount) > 0
+                                    ? '#78e6b0'
+                                    : '#ff8585',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               {Number(transaction.amount) > 0 ? '+' : ''}
@@ -488,7 +468,7 @@ function AuthModal({ open, onClose }) {
                             style={{
                               fontSize: '12px',
                               opacity: 0.75,
-                              marginTop: '7px'
+                              marginTop: '7px',
                             }}
                           >
                             {transaction.description || 'Без описания'}
@@ -498,7 +478,7 @@ function AuthModal({ open, onClose }) {
                             style={{
                               display: 'block',
                               opacity: 0.5,
-                              marginTop: '7px'
+                              marginTop: '7px',
                             }}
                           >
                             {formatDateTime(transaction.created_at)}
@@ -528,87 +508,73 @@ function AuthModal({ open, onClose }) {
           </div>
         ) : (
           <div className="auth-content">
-            <h2>
-              {mode === 'register'
-                ? 'Создать аккаунт'
-                : 'С возвращением'}
-            </h2>
+            <h2>Добро пожаловать</h2>
 
             <p className="auth-description">
-              {mode === 'register'
-                ? 'Стань частью государственной семьи CORZA.'
-                : 'Войди в свой личный кабинет CORZA.'}
+              Войди в государственную семью CORZA.
+              Выбери удобный способ авторизации.
             </p>
 
-            <button
-              className="auth-submit"
-              type="button"
-              onClick={handleDiscordLogin}
-              disabled={loading}
+            <div
               style={{
-                background: 'linear-gradient(100deg, #5865F2, #8065FF)',
-                marginBottom: '18px'
+                display: 'grid',
+                gap: '14px',
+                marginTop: '25px',
               }}
             >
-              {loading ? 'Подключаем Discord...' : '🎮 Войти через Discord'}
-            </button>
-
-            <div className="auth-tabs">
               <button
+                className="auth-submit"
                 type="button"
-                className={mode === 'register' ? 'active' : ''}
-                onClick={() => {
-                  setMode('register')
-                  setMessage('')
+                onClick={() => handleOAuthLogin('google')}
+                disabled={loading}
+                style={{
+                  background: '#ffffff',
+                  color: '#222222',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
                 }}
               >
-                Регистрация
+                <span style={{ fontSize: '20px' }}>G</span>
+                {loading && loadingProvider === 'google'
+                  ? 'Подключаем Google...'
+                  : 'Продолжить с Google'}
               </button>
-
-              <button
-                type="button"
-                className={mode === 'login' ? 'active' : ''}
-                onClick={() => {
-                  setMode('login')
-                  setMessage('')
-                }}
-              >
-                Вход
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <label>Электронная почта</label>
-              <input
-                type="email"
-                placeholder="example@mail.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-
-              <label>Пароль</label>
-              <input
-                type="password"
-                placeholder="Минимум 8 символов"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={8}
-              />
 
               <button
                 className="auth-submit"
-                type="submit"
+                type="button"
+                onClick={() => handleOAuthLogin('discord')}
                 disabled={loading}
+                style={{
+                  background: 'linear-gradient(100deg, #5865F2, #8065FF)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
               >
-                {loading
-                  ? 'Подожди...'
-                  : mode === 'register'
-                    ? 'Создать аккаунт'
-                    : 'Войти в аккаунт'}
+                <span style={{ fontSize: '20px' }}>🎮</span>
+                {loading && loadingProvider === 'discord'
+                  ? 'Подключаем Discord...'
+                  : 'Продолжить с Discord'}
               </button>
-            </form>
+            </div>
+
+            <p
+              style={{
+                textAlign: 'center',
+                fontSize: '12px',
+                opacity: 0.55,
+                marginTop: '22px',
+                lineHeight: 1.6,
+              }}
+            >
+              Авторизуясь, ты получаешь доступ к личному кабинету CORZA.
+            </p>
 
             {message && (
               <div className="auth-message">
