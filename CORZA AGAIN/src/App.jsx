@@ -29,7 +29,7 @@ const leaders = [
     name: 'Senya',
     description: 'Контроль состава и развития',
     initials: 'S',
-    avatar: 'https://pin.it/3qqScDxVm',
+    avatar: 'https://i.pinimg.com/736x/2b/c4/2e/2bc42ea5266d4ab730335de5a2c36cfc.jpg',
   },
   {
     role: 'Заместитель главы',
