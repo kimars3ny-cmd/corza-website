@@ -94,6 +94,27 @@ function getPageFromHash() {
   return separatePages.includes(hash) ? hash : 'home'
 }
 
+function LeaderAvatar({ leader }) {
+  const [imageError, setImageError] = useState(false)
+
+  return (
+    <div className="leader-avatar">
+      {!imageError ? (
+        <img
+          src={leader.avatar}
+          alt={`Фотография ${leader.name}`}
+          loading="eager"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="leader-avatar-fallback">
+          {leader.initials}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function App() {
   const [authOpen, setAuthOpen] = useState(false)
   const [page, setPage] = useState(getPageFromHash)
@@ -258,24 +279,22 @@ function App() {
           <span>CORZA</span>
         </a>
 
-        
-  <nav>
-    <a href="#home">Главная</a>
-    <a href="#about">О семье</a>
-    <a href="#leaders">Руководство</a>
-    <a href="#coins">Рейтинг CC</a>
+        <nav>
+          <a href="#home">Главная</a>
+          <a href="#about">О семье</a>
+          <a href="#leaders">Руководство</a>
+          <a href="#coins">Рейтинг CC</a>
 
-    {user && (
-    <>
-      <a href="#tasks">Задания</a>
-      <a href="#join">Вступление</a>
-      <a href="#promotion">Повышение</a>
-    </>
-    )}
+          {user && (
+            <>
+              <a href="#tasks">Задания</a>
+              <a href="#join">Вступление</a>
+              <a href="#promotion">Повышение</a>
+            </>
+          )}
 
-  <a href="#government">Структуры</a>
-</nav>
-
+          <a href="#government">Структуры</a>
+        </nav>
 
         {user ? (
           <button
@@ -400,14 +419,9 @@ function App() {
               </div>
 
               <div className="leaders-grid">
-                {leaders.map((leader, index) => (
-                  <article className="leader-card glass" key={index}>
-                    <div className="leader-avatar">
-                      <img
-                        src={leader.avatar}
-                        alt={leader.name}
-                      />
-                    </div>
+                {leaders.map((leader) => (
+                  <article className="leader-card glass" key={leader.name}>
+                    <LeaderAvatar leader={leader} />
 
                     <span className="leader-role">
                       {leader.role}
@@ -447,7 +461,7 @@ function App() {
                 style={{
                   padding: '24px',
                   borderRadius: '22px',
-                  marginTop: '30px'
+                  marginTop: '30px',
                 }}
               >
                 {leaderboardLoading ? (
@@ -460,6 +474,7 @@ function App() {
                     <p style={{ opacity: 0.7, marginTop: '10px' }}>
                       {leaderboardError}
                     </p>
+
                     <button
                       className="secondary-button"
                       style={{ marginTop: '18px' }}
@@ -502,7 +517,7 @@ function App() {
                           border: '1px solid rgba(160, 140, 220, 0.18)',
                           background: index < 3
                             ? 'linear-gradient(100deg, rgba(130, 90, 220, 0.18), rgba(40, 150, 255, 0.08))'
-                            : 'rgba(120, 100, 180, 0.06)'
+                            : 'rgba(120, 100, 180, 0.06)',
                         }}
                       >
                         <div
@@ -516,7 +531,7 @@ function App() {
                                 ? '#d6dce8'
                                 : index === 2
                                   ? '#d99a70'
-                                  : '#a99bd2'
+                                  : '#a99bd2',
                           }}
                         >
                           {index === 0
@@ -533,7 +548,7 @@ function App() {
                             style={{
                               display: 'block',
                               overflow: 'hidden',
-                              textOverflow: 'ellipsis'
+                              textOverflow: 'ellipsis',
                             }}
                           >
                             {player.player_name}
@@ -544,7 +559,7 @@ function App() {
                               display: 'block',
                               fontSize: '12px',
                               opacity: 0.6,
-                              marginTop: '4px'
+                              marginTop: '4px',
                             }}
                           >
                             {player.player_server || 'Сервер не указан'}
@@ -555,7 +570,7 @@ function App() {
                           style={{
                             color: '#b69aff',
                             whiteSpace: 'nowrap',
-                            fontSize: '14px'
+                            fontSize: '14px',
                           }}
                         >
                           {Number(player.coin_balance).toLocaleString('ru-RU')} CC
@@ -570,7 +585,7 @@ function App() {
                     textAlign: 'center',
                     opacity: 0.5,
                     fontSize: '12px',
-                    marginTop: '18px'
+                    marginTop: '18px',
                   }}
                 >
                   Рейтинг формируется автоматически на основе баланса игроков.
