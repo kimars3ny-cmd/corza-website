@@ -12,6 +12,12 @@ function AuthModal({ open, onClose }) {
   const [profileLoading, setProfileLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Редактирование профиля
+  const [editProfile, setEditProfile] = useState(false)
+  const [editNickname, setEditNickname] = useState('')
+  const [editServer, setEditServer] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
   // Corza Coin
   const [coinBalance, setCoinBalance] = useState(null)
   const [coinTransactions, setCoinTransactions] = useState([])
@@ -171,6 +177,59 @@ function AuthModal({ open, onClose }) {
     }
   }
 
+  // Открываем редактирование профиля
+  function openProfileEdit() {
+    setEditNickname(profile?.game_nickname || '')
+    setEditServer(profile?.server || '')
+    setMessage('')
+    setEditProfile(true)
+  }
+
+  // Сохраняем изменения профиля
+  async function saveProfile() {
+    if (!editNickname.trim() || !editServer.trim()) {
+      setMessage('Заполни игровой никнейм и сервер.')
+      return
+    }
+
+    if (!user) {
+      setMessage('Необходимо авторизоваться.')
+      return
+    }
+
+    setSavingProfile(true)
+    setMessage('')
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          game_nickname: editNickname.trim(),
+          server: editServer.trim(),
+        })
+        .eq('id', user.id)
+        .select('game_nickname, server, rank, position, joined_at')
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (!data) {
+        throw new Error(
+          'Профиль не найден или изменение запрещено. Проверь наличие записи в profiles и права доступа.'
+        )
+      }
+
+      setProfile(data)
+      setEditProfile(false)
+      setMessage('Данные профиля успешно обновлены!')
+    } catch (error) {
+      console.error('Ошибка сохранения профиля:', error)
+      setMessage('Ошибка сохранения: ' + error.message)
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   // Выход из аккаунта
   async function handleLogout() {
     setLoading(true)
@@ -185,6 +244,7 @@ function AuthModal({ open, onClose }) {
       setIsAdmin(false)
       setCoinBalance(null)
       setCoinTransactions([])
+      setEditProfile(false)
       setMessage('')
       onClose()
     }
@@ -309,6 +369,121 @@ function AuthModal({ open, onClose }) {
 
                 <div className="profile-section">
                   <h3>Информация об аккаунте</h3>
+
+                  {!editProfile ? (
+                    <button
+                      className="auth-submit"
+                      type="button"
+                      onClick={openProfileEdit}
+                      style={{ marginTop: '15px', marginBottom: '15px' }}
+                    >
+                      ✏️ Изменить данные профиля
+                    </button>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: '14px',
+                        marginTop: '15px',
+                        marginBottom: '20px',
+                        padding: '18px',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(150, 110, 255, 0.35)',
+                        background: 'rgba(100, 80, 180, 0.10)',
+                      }}
+                    >
+                      <h3 style={{ margin: 0 }}>
+                        Редактирование профиля
+                      </h3>
+
+                      <div>
+                        <label
+                          style={{
+                            display: 'block',
+                            marginBottom: '8px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          Игровой никнейм
+                        </label>
+
+                        <input
+                          type="text"
+                          value={editNickname}
+                          onChange={(event) =>
+                            setEditNickname(event.target.value)
+                          }
+                          placeholder="Например: Atlantica_Corza"
+                          maxLength={40}
+                          style={{
+                            width: '100%',
+                            padding: '13px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(160, 140, 220, 0.3)',
+                            background: 'rgba(10, 10, 30, 0.65)',
+                            color: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          style={{
+                            display: 'block',
+                            marginBottom: '8px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          Сервер Majestic RP
+                        </label>
+
+                        <input
+                          type="text"
+                          value={editServer}
+                          onChange={(event) =>
+                            setEditServer(event.target.value)
+                          }
+                          placeholder="Например: 1"
+                          maxLength={50}
+                          style={{
+                            width: '100%',
+                            padding: '13px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(160, 140, 220, 0.3)',
+                            background: 'rgba(10, 10, 30, 0.65)',
+                            color: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        className="auth-submit"
+                        type="button"
+                        onClick={saveProfile}
+                        disabled={savingProfile}
+                      >
+                        {savingProfile
+                          ? 'Сохраняем...'
+                          : '💾 Сохранить изменения'}
+                      </button>
+
+                      <button
+                        className="auth-submit auth-logout"
+                        type="button"
+                        onClick={() => {
+                          setEditProfile(false)
+                          setMessage('')
+                        }}
+                        disabled={savingProfile}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  )}
 
                   <div className="auth-user">
                     <span>Игровой никнейм</span>
