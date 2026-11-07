@@ -2617,3 +2617,72 @@ footer > span {
     display: none;
   }
 }
+
+
+/* =========================================
+   CORZA — INTERACTIVE PARTICLE BACKGROUND
+   ========================================= */
+
+#root {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.app {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Canvas с частицами */
+.network-background {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Звёзды и содержимое сайта располагаются над canvas */
+.app > .stars,
+.app > aside,
+.app > header,
+.app > main,
+.app > footer,
+.app > .discord-widget {
+  position: relative;
+  z-index: 1;
+}
+
+/* Шапка и боковая панель сохраняют свой приоритет */
+.app > header.navbar {
+  position: fixed;
+  z-index: 999;
+}
+
+.app > aside.side-admin-panel {
+  position: fixed;
+  z-index: 9999;
+}
+
+/* Модальные окна остаются выше остальных элементов */
+.auth-overlay {
+  z-index: 10000;
+}
+
+/* Телефоны */
+@media (max-width: 700px) {
+  .network-background {
+    opacity: 0.5;
+  }
+}
+
+/* Учитываем настройку уменьшения движения */
+@media (prefers-reduced-motion: reduce) {
+  .network-background {
+    opacity: 0.3;
+  }
+}

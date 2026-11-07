@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
@@ -8,6 +7,7 @@ import PromotionPage from './PromotionPage'
 import TasksPage from './TasksPage'
 import DiscordWidget from './DiscordWidget'
 import { supabase } from './supabase'
+import NetworkBackground from './NetworkBackground'
 
 const leaders = [
   {
@@ -265,6 +265,8 @@ function App() {
 
   return (
     <div className="app">
+      <NetworkBackground />
+
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
