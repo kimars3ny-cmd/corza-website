@@ -14,6 +14,7 @@ function AdminPanel() {
   const [joinRequests, setJoinRequests] = useState([])
   const [wallets, setWallets] = useState([])
   const [admins, setAdmins] = useState([])
+  const [tasks, setTasks] = useState([])
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -23,6 +24,12 @@ function AdminPanel() {
   const [coinDescription, setCoinDescription] = useState('')
 
   const [selectedAdminUserId, setSelectedAdminUserId] = useState('')
+
+  // Создание заданий
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDescription, setTaskDescription] = useState('')
+  const [taskReward, setTaskReward] = useState('100')
+  const [taskActive, setTaskActive] = useState(true)
 
   // Проверка прав пользователя
   useEffect(() => {
@@ -90,7 +97,8 @@ function AdminPanel() {
       requestsResult,
       joinResult,
       walletsResult,
-      adminsResult
+      adminsResult,
+      tasksResult
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -115,6 +123,13 @@ function AdminPanel() {
 
       isLevelOne
         ? supabase.rpc('get_corza_admins')
+        : Promise.resolve({ data: [], error: null }),
+
+      isOwner
+        ? supabase
+            .from('corza_tasks')
+            .select('*')
+            .order('created_at', { ascending: false })
         : Promise.resolve({ data: [], error: null })
     ])
 
@@ -152,6 +167,14 @@ function AdminPanel() {
       }
     }
 
+    if (isOwner) {
+      if (tasksResult.error) {
+        errors.push('Задания: ' + tasksResult.error.message)
+      } else {
+        setTasks(tasksResult.data || [])
+      }
+    }
+
     if (errors.length) {
       setMessage('Ошибки загрузки: ' + errors.join(' | '))
     }
@@ -163,7 +186,64 @@ function AdminPanel() {
     if (isAdmin) {
       loadAdminData()
     }
-  }, [isAdmin, isLevelOne])
+  }, [isAdmin, isLevelOne, isOwner])
+
+  // Создание задания для CORZA COIN
+  async function createTask(event) {
+    event.preventDefault()
+
+    if (!isOwner) {
+      setMessage('Создавать задания может только владелец сайта.')
+      return
+    }
+
+    const title = taskTitle.trim()
+    const description = taskDescription.trim()
+    const reward = Number(taskReward)
+
+    if (!title) {
+      setMessage('Укажи название задания.')
+      return
+    }
+
+    if (!description) {
+      setMessage('Укажи описание задания.')
+      return
+    }
+
+    if (!Number.isSafeInteger(reward) || reward <= 0) {
+      setMessage('Награда должна быть целым числом больше нуля.')
+      return
+    }
+
+    setLoading(true)
+    setMessage('Создаём задание...')
+
+    const { error } = await supabase
+      .from('corza_tasks')
+      .insert({
+        title,
+        description,
+        reward,
+        is_active: taskActive,
+        created_by: user.id
+      })
+
+    if (error) {
+      setMessage('Ошибка создания задания: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    setTaskTitle('')
+    setTaskDescription('')
+    setTaskReward('100')
+    setTaskActive(true)
+
+    await loadAdminData()
+
+    setMessage('Задание успешно создано!')
+  }
 
   // Начисление и списание CC
   async function adjustCoins(event) {
@@ -220,7 +300,6 @@ function AdminPanel() {
   }
 
   // Назначение и снятие прав администратора
-  // 1 — администратор, 2 — младший администратор, -1 — снять права
   async function manageAdmin(userId, adminLevel) {
     if (!isLevelOne) {
       setMessage('Недостаточно прав для управления администраторами.')
@@ -433,6 +512,145 @@ function AdminPanel() {
           </strong>
         </div>
       </div>
+
+      {/* Создание заданий — только владелец */}
+      {isOwner && (
+        <div className="admin-block glass">
+          <h3>Создание заданий за CORZA COIN</h3>
+
+          <p>
+            Создавай задания для участников семьи. После публикации
+            они появятся на странице заданий.
+          </p>
+
+          <form
+            onSubmit={createTask}
+            style={{
+              display: 'grid',
+              gap: '14px',
+              maxWidth: '620px',
+              marginTop: '20px'
+            }}
+          >
+            <label>
+              <span>Название задания</span>
+
+              <input
+                type="text"
+                value={taskTitle}
+                onChange={(event) => setTaskTitle(event.target.value)}
+                placeholder="Например: Помощь семье на мероприятии"
+                maxLength={120}
+                required
+                disabled={loading}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px',
+                  marginTop: '8px',
+                  borderRadius: '10px'
+                }}
+              />
+            </label>
+
+            <label>
+              <span>Описание задания</span>
+
+              <textarea
+                value={taskDescription}
+                onChange={(event) => setTaskDescription(event.target.value)}
+                placeholder="Подробно опиши, что должен сделать участник..."
+                rows={5}
+                maxLength={3000}
+                required
+                disabled={loading}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px',
+                  marginTop: '8px',
+                  borderRadius: '10px',
+                  resize: 'vertical'
+                }}
+              />
+            </label>
+
+            <label>
+              <span>Награда в CORZA COIN</span>
+
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={taskReward}
+                onChange={(event) => setTaskReward(event.target.value)}
+                placeholder="Например: 500"
+                required
+                disabled={loading}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px',
+                  marginTop: '8px',
+                  borderRadius: '10px'
+                }}
+              />
+            </label>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={taskActive}
+                onChange={(event) => setTaskActive(event.target.checked)}
+                disabled={loading}
+              />
+
+              <span>Опубликовать задание сразу</span>
+            </label>
+
+            <button type="submit" disabled={loading}>
+              {loading ? 'Создание...' : 'Опубликовать задание'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '30px' }}>
+            <h3>Созданные задания</h3>
+
+            {tasks.length === 0 ? (
+              <p className="admin-empty">
+                Пока нет созданных заданий.
+              </p>
+            ) : (
+              <div className="admin-list">
+                {tasks.map((task) => (
+                  <article className="admin-request" key={task.id}>
+                    <div className="admin-request-info">
+                      <strong>{task.title}</strong>
+
+                      <p>{task.description}</p>
+
+                      <strong>
+                        Награда: {Number(task.reward).toLocaleString('ru-RU')} CC
+                      </strong>
+
+                      <small>
+                        Статус: {task.is_active ? 'Опубликовано' : 'Скрыто'}
+                      </small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Управление администраторами */}
       {isLevelOne && (
