@@ -15,6 +15,7 @@ function AdminPanel() {
   const [wallets, setWallets] = useState([])
   const [admins, setAdmins] = useState([])
   const [tasks, setTasks] = useState([])
+  const [taskSubmissions, setTaskSubmissions] = useState([])
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -25,7 +26,6 @@ function AdminPanel() {
 
   const [selectedAdminUserId, setSelectedAdminUserId] = useState('')
 
-  // Создание заданий
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
   const [taskReward, setTaskReward] = useState('100')
@@ -98,7 +98,8 @@ function AdminPanel() {
       joinResult,
       walletsResult,
       adminsResult,
-      tasksResult
+      tasksResult,
+      submissionsResult
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -116,21 +117,24 @@ function AdminPanel() {
         .order('created_at', { ascending: false }),
 
       isLevelOne
-        ? supabase
-            .from('corza_wallets')
-            .select('user_id, balance')
+        ? supabase.from('corza_wallets').select('user_id, balance')
         : Promise.resolve({ data: [], error: null }),
 
       isLevelOne
         ? supabase.rpc('get_corza_admins')
         : Promise.resolve({ data: [], error: null }),
 
-      isOwner
-        ? supabase
-            .from('corza_tasks')
-            .select('*')
-            .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [], error: null })
+      // Задания нужны всем администраторам для проверки заявок
+      supabase
+        .from('corza_tasks')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      // Заявки на выполнение заданий
+      supabase
+        .from('corza_task_submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
     ])
 
     const errors = []
@@ -167,12 +171,16 @@ function AdminPanel() {
       }
     }
 
-    if (isOwner) {
-      if (tasksResult.error) {
-        errors.push('Задания: ' + tasksResult.error.message)
-      } else {
-        setTasks(tasksResult.data || [])
-      }
+    if (tasksResult.error) {
+      errors.push('Задания: ' + tasksResult.error.message)
+    } else {
+      setTasks(tasksResult.data || [])
+    }
+
+    if (submissionsResult.error) {
+      errors.push('Заявки на выполнение заданий: ' + submissionsResult.error.message)
+    } else {
+      setTaskSubmissions(submissionsResult.data || [])
     }
 
     if (errors.length) {
@@ -188,7 +196,7 @@ function AdminPanel() {
     }
   }, [isAdmin, isLevelOne, isOwner])
 
-  // Создание задания для CORZA COIN
+  // Создание задания — только владелец
   async function createTask(event) {
     event.preventDefault()
 
@@ -201,13 +209,8 @@ function AdminPanel() {
     const description = taskDescription.trim()
     const reward = Number(taskReward)
 
-    if (!title) {
-      setMessage('Укажи название задания.')
-      return
-    }
-
-    if (!description) {
-      setMessage('Укажи описание задания.')
+    if (!title || !description) {
+      setMessage('Заполни название и описание задания.')
       return
     }
 
@@ -241,11 +244,103 @@ function AdminPanel() {
     setTaskActive(true)
 
     await loadAdminData()
-
     setMessage('Задание успешно создано!')
   }
 
-  // Начисление и списание CC
+  // Проверка выполненного задания и начисление CC
+  async function reviewTaskSubmission(submissionId, status) {
+    if (!isAdmin) {
+      setMessage('У тебя нет прав для проверки заданий.')
+      return
+    }
+
+    const submission = taskSubmissions.find(
+      (item) => item.id === submissionId
+    )
+
+    if (!submission || submission.status !== 'pending') {
+      setMessage('Эта заявка уже была проверена.')
+      return
+    }
+
+    const task = tasks.find((item) => item.id === submission.task_id)
+    const player = profiles.find((item) => item.id === submission.user_id)
+
+    const playerName = player?.game_nickname || 'Игрок'
+    const taskName = task?.title || 'Задание'
+
+    if (status === 'approved') {
+      const comment = window.prompt(
+        `Одобрить выполнение задания «${taskName}» игроку ${playerName}?\n\nНаграда: ${Number(task?.reward || 0)} CC\n\nМожешь оставить комментарий или нажать «Отмена» для пустого комментария.`,
+        'Выполнение подтверждено!'
+      )
+
+      if (comment === null) return
+
+      setLoading(true)
+      setMessage('Проверяем задание и начисляем CC...')
+
+      const { data, error } = await supabase.rpc(
+        'approve_corza_task_submission',
+        {
+          p_submission_id: submissionId,
+          p_admin_comment: comment.trim()
+        }
+      )
+
+      if (error) {
+        setMessage('Ошибка одобрения задания: ' + error.message)
+        setLoading(false)
+        return
+      }
+
+      await loadAdminData()
+
+      setMessage(
+        `Задание одобрено! Игроку ${playerName} начислена награда. Новый баланс: ${data} CC.`
+      )
+      return
+    }
+
+    if (status === 'rejected') {
+      const comment = window.prompt(
+        `Укажи причину отклонения задания «${taskName}» для игрока ${playerName}:`,
+        'Необходимо предоставить более подробный отчёт.'
+      )
+
+      if (comment === null) return
+
+      if (!comment.trim()) {
+        setMessage('Укажи причину отклонения.')
+        return
+      }
+
+      setLoading(true)
+      setMessage('Отклоняем выполнение задания...')
+
+      const { error } = await supabase
+        .from('corza_task_submissions')
+        .update({
+          status: 'rejected',
+          admin_comment: comment.trim(),
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', submissionId)
+        .eq('status', 'pending')
+
+      if (error) {
+        setMessage('Ошибка отклонения задания: ' + error.message)
+        setLoading(false)
+        return
+      }
+
+      await loadAdminData()
+      setMessage(`Заявка игрока ${playerName} отклонена.`)
+    }
+  }
+
+  // Начисление и списание CC вручную
   async function adjustCoins(event) {
     event.preventDefault()
 
@@ -299,7 +394,7 @@ function AdminPanel() {
     )
   }
 
-  // Назначение и снятие прав администратора
+  // Управление администраторами
   async function manageAdmin(userId, adminLevel) {
     if (!isLevelOne) {
       setMessage('Недостаточно прав для управления администраторами.')
@@ -344,20 +439,15 @@ function AdminPanel() {
       action = `снять права администратора у ${targetName}?`
     }
 
-    if (!window.confirm(`Ты уверен, что хочешь ${action}`)) {
-      return
-    }
+    if (!window.confirm(`Ты уверен, что хочешь ${action}`)) return
 
     setLoading(true)
     setMessage('Изменяем права администратора...')
 
-    const { error } = await supabase.rpc(
-      'manage_corza_admin',
-      {
-        p_target_user_id: userId,
-        p_admin_level: adminLevel
-      }
-    )
+    const { error } = await supabase.rpc('manage_corza_admin', {
+      p_target_user_id: userId,
+      p_admin_level: adminLevel
+    })
 
     if (error) {
       setMessage('Ошибка управления администраторами: ' + error.message)
@@ -396,12 +486,9 @@ function AdminPanel() {
     }
 
     await loadAdminData()
-
-    setMessage(
-      status === 'approved'
-        ? 'Заявка на повышение одобрена.'
-        : 'Заявка на повышение отклонена.'
-    )
+    setMessage(status === 'approved'
+      ? 'Заявка на повышение одобрена.'
+      : 'Заявка на повышение отклонена.')
   }
 
   // Обработка заявки на вступление
@@ -425,12 +512,9 @@ function AdminPanel() {
     }
 
     await loadAdminData()
-
-    setMessage(
-      status === 'approved'
-        ? 'Заявка на вступление одобрена!'
-        : 'Заявка на вступление отклонена.'
-    )
+    setMessage(status === 'approved'
+      ? 'Заявка на вступление одобрена!'
+      : 'Заявка на вступление отклонена.')
   }
 
   if (checking) return null
@@ -444,20 +528,28 @@ function AdminPanel() {
     ['pending', 'На рассмотрении'].includes(item.status)
   )
 
+  const pendingTaskSubmissions = taskSubmissions.filter(
+    (item) => item.status === 'pending'
+  )
+
   const availablePlayers = profiles.filter(
     (profile) => !admins.some((admin) => admin.user_id === profile.id)
   )
 
   function getAdminRole(level) {
     switch (Number(level)) {
-      case 0:
-        return 'Владелец'
-      case 1:
-        return 'Администратор 1 уровня'
-      case 2:
-        return 'Младший администратор'
-      default:
-        return 'Неизвестная роль'
+      case 0: return 'Владелец'
+      case 1: return 'Администратор 1 уровня'
+      case 2: return 'Младший администратор'
+      default: return 'Неизвестная роль'
+    }
+  }
+
+  function getTaskStatus(status) {
+    switch (status) {
+      case 'approved': return 'Одобрено'
+      case 'rejected': return 'Отклонено'
+      default: return 'На проверке'
     }
   }
 
@@ -466,17 +558,13 @@ function AdminPanel() {
       <div className="admin-heading">
         <div>
           <span className="section-label">05 / CONTROL CENTER</span>
-
-          <h2>
-            Панель <span>руководства.</span>
-          </h2>
-
+          <h2>Панель <span>руководства.</span></h2>
           <p>
             {isOwner
               ? 'Владелец — полный доступ ко всем функциям сайта.'
               : isLevelOne
                 ? 'Администратор 1 уровня — полный доступ к управлению сайтом.'
-                : 'Администратор 2 уровня — управление заявками.'}
+                : 'Администратор 2 уровня — управление заявками и проверка заданий.'}
           </p>
         </div>
 
@@ -490,9 +578,7 @@ function AdminPanel() {
         </button>
       </div>
 
-      {message && (
-        <div className="admin-message">{message}</div>
-      )}
+      {message && <div className="admin-message">{message}</div>}
 
       <div className="admin-stats">
         <div className="admin-stat glass">
@@ -508,33 +594,138 @@ function AdminPanel() {
         <div className="admin-stat glass">
           <span>На рассмотрении</span>
           <strong>
-            {pendingPromotions.length + pendingJoins.length}
+            {pendingPromotions.length + pendingJoins.length + pendingTaskSubmissions.length}
           </strong>
         </div>
+      </div>
+
+      {/* Проверка выполненных заданий — все администраторы */}
+      <div className="admin-block glass task-review-block">
+        <div className="task-review-heading">
+          <div>
+            <span className="section-label">CORZA COIN / TASK CONTROL</span>
+            <h3>Проверка выполненных заданий</h3>
+            <p>
+              Проверяй отчёты участников. При одобрении награда автоматически
+              поступит на баланс игрока.
+            </p>
+          </div>
+
+          <div className="task-review-counter">
+            <strong>{pendingTaskSubmissions.length}</strong>
+            <span>Ожидают проверки</span>
+          </div>
+        </div>
+
+        {taskSubmissions.length === 0 ? (
+          <p className="admin-empty">
+            Пока никто не отправил выполненные задания.
+          </p>
+        ) : (
+          <div className="task-review-list">
+            {taskSubmissions.map((submission) => {
+              const task = tasks.find(
+                (item) => item.id === submission.task_id
+              )
+
+              const player = profiles.find(
+                (item) => item.id === submission.user_id
+              )
+
+              const pending = submission.status === 'pending'
+
+              return (
+                <article className="task-review-card" key={submission.id}>
+                  <div className="task-review-card-top">
+                    <div>
+                      <span className="task-review-label">УЧАСТНИК</span>
+                      <h4>{player?.game_nickname || 'Неизвестный игрок'}</h4>
+                      <span className="task-review-server">
+                        {player?.server || 'Сервер не указан'}
+                      </span>
+                    </div>
+
+                    <span className={`task-review-status ${submission.status}`}>
+                      {getTaskStatus(submission.status)}
+                    </span>
+                  </div>
+
+                  <div className="task-review-task-info">
+                    <div>
+                      <span className="task-review-label">ЗАДАНИЕ</span>
+                      <strong>{task?.title || 'Задание не найдено'}</strong>
+                    </div>
+
+                    <div className="task-review-reward">
+                      <span className="task-review-label">НАГРАДА</span>
+                      <strong>
+                        {Number(task?.reward || 0).toLocaleString('ru-RU')} CC
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="task-review-report">
+                    <span className="task-review-label">ОТЧЁТ ИГРОКА</span>
+                    <p>{submission.report || 'Отчёт не указан.'}</p>
+                  </div>
+
+                  <div className="task-review-date">
+                    Отправлено: {submission.created_at
+                      ? new Date(submission.created_at).toLocaleString('ru-RU')
+                      : 'Дата неизвестна'}
+                  </div>
+
+                  {submission.admin_comment && (
+                    <div className="task-review-comment">
+                      <strong>Комментарий администратора:</strong>
+                      <p>{submission.admin_comment}</p>
+                    </div>
+                  )}
+
+                  {pending && (
+                    <div className="task-review-actions">
+                      <button
+                        type="button"
+                        className="task-review-approve"
+                        disabled={loading}
+                        onClick={() =>
+                          reviewTaskSubmission(submission.id, 'approved')
+                        }
+                      >
+                        Одобрить и начислить CC
+                      </button>
+
+                      <button
+                        type="button"
+                        className="task-review-reject"
+                        disabled={loading}
+                        onClick={() =>
+                          reviewTaskSubmission(submission.id, 'rejected')
+                        }
+                      >
+                        Отклонить
+                      </button>
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Создание заданий — только владелец */}
       {isOwner && (
         <div className="admin-block glass">
           <h3>Создание заданий за CORZA COIN</h3>
-
           <p>
             Создавай задания для участников семьи. После публикации
             они появятся на странице заданий.
           </p>
 
-          <form
-            onSubmit={createTask}
-            style={{
-              display: 'grid',
-              gap: '14px',
-              maxWidth: '620px',
-              marginTop: '20px'
-            }}
-          >
+          <form className="admin-task-form" onSubmit={createTask}>
             <label>
               <span>Название задания</span>
-
               <input
                 type="text"
                 value={taskTitle}
@@ -543,19 +734,11 @@ function AdminPanel() {
                 maxLength={120}
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               />
             </label>
 
             <label>
               <span>Описание задания</span>
-
               <textarea
                 value={taskDescription}
                 onChange={(event) => setTaskDescription(event.target.value)}
@@ -564,54 +747,29 @@ function AdminPanel() {
                 maxLength={3000}
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px',
-                  resize: 'vertical'
-                }}
               />
             </label>
 
             <label>
               <span>Награда в CORZA COIN</span>
-
               <input
                 type="number"
                 min="1"
                 step="1"
                 value={taskReward}
                 onChange={(event) => setTaskReward(event.target.value)}
-                placeholder="Например: 500"
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               />
             </label>
 
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                cursor: 'pointer'
-              }}
-            >
+            <label className="admin-task-checkbox">
               <input
                 type="checkbox"
                 checked={taskActive}
                 onChange={(event) => setTaskActive(event.target.checked)}
                 disabled={loading}
               />
-
               <span>Опубликовать задание сразу</span>
             </label>
 
@@ -624,22 +782,17 @@ function AdminPanel() {
             <h3>Созданные задания</h3>
 
             {tasks.length === 0 ? (
-              <p className="admin-empty">
-                Пока нет созданных заданий.
-              </p>
+              <p className="admin-empty">Пока нет созданных заданий.</p>
             ) : (
               <div className="admin-list">
                 {tasks.map((task) => (
                   <article className="admin-request" key={task.id}>
                     <div className="admin-request-info">
                       <strong>{task.title}</strong>
-
                       <p>{task.description}</p>
-
                       <strong>
                         Награда: {Number(task.reward).toLocaleString('ru-RU')} CC
                       </strong>
-
                       <small>
                         Статус: {task.is_active ? 'Опубликовано' : 'Скрыто'}
                       </small>
@@ -656,45 +809,24 @@ function AdminPanel() {
       {isLevelOne && (
         <div className="admin-block glass">
           <h3>Управление администраторами</h3>
-
           <p>
             {isOwner
               ? 'Владелец может назначать администраторов обоих уровней и снимать их права.'
               : 'Ты можешь назначать младших администраторов и снимать их права.'}
           </p>
 
-          <div
-            style={{
-              display: 'grid',
-              gap: '14px',
-              maxWidth: '520px',
-              marginTop: '20px'
-            }}
-          >
+          <div className="admin-task-form">
             <label>
               <span>Выбери игрока</span>
-
               <select
                 value={selectedAdminUserId}
-                onChange={(event) =>
-                  setSelectedAdminUserId(event.target.value)
-                }
+                onChange={(event) => setSelectedAdminUserId(event.target.value)}
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               >
                 <option value="">Выбрать участника...</option>
-
                 {availablePlayers.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    {profile.game_nickname || 'Без никнейма'}
-                    {' — '}
-                    {profile.server || 'Сервер не указан'}
+                    {profile.game_nickname || 'Без никнейма'} — {profile.server || 'Сервер не указан'}
                   </option>
                 ))}
               </select>
@@ -723,16 +855,13 @@ function AdminPanel() {
             <h3>Действующие администраторы</h3>
 
             {admins.length === 0 ? (
-              <p className="admin-empty">
-                Администраторы не найдены.
-              </p>
+              <p className="admin-empty">Администраторы не найдены.</p>
             ) : (
               <div className="admin-list">
                 {admins.map((admin) => {
                   const member = profiles.find(
                     (profile) => profile.id === admin.user_id
                   )
-
                   const level = Number(admin.admin_level)
                   const canRemove =
                     (isOwner && level !== 0) ||
@@ -741,33 +870,22 @@ function AdminPanel() {
                   return (
                     <article className="admin-member" key={admin.user_id}>
                       <div>
-                        <strong>
-                          {member?.game_nickname || 'Игрок'}
-                        </strong>
-
-                        <span>
-                          {member?.server || 'Сервер не указан'}
-                        </span>
+                        <strong>{member?.game_nickname || 'Игрок'}</strong>
+                        <span>{member?.server || 'Сервер не указан'}</span>
                       </div>
 
                       <div className="admin-member-rank">
                         <strong>{getAdminRole(level)}</strong>
-
                         {canRemove && (
                           <button
                             type="button"
                             disabled={loading}
-                            onClick={() =>
-                              manageAdmin(admin.user_id, -1)
-                            }
+                            onClick={() => manageAdmin(admin.user_id, -1)}
                           >
                             Снять права
                           </button>
                         )}
-
-                        {level === 0 && (
-                          <span>Главный владелец сайта</span>
-                        )}
+                        {level === 0 && <span>Главный владелец сайта</span>}
                       </div>
                     </article>
                   )
@@ -778,47 +896,25 @@ function AdminPanel() {
         </div>
       )}
 
-      {/* Corza Coin */}
+      {/* Управление Corza Coin */}
       {isLevelOne && (
         <div className="admin-block glass">
           <h3>Управление Corza Coin</h3>
+          <p>Начисление и списание внутренней валюты CORZA.</p>
 
-          <p>
-            Начисление и списание внутренней валюты CORZA.
-          </p>
-
-          <form
-            onSubmit={adjustCoins}
-            style={{
-              display: 'grid',
-              gap: '14px',
-              maxWidth: '520px',
-              marginTop: '20px'
-            }}
-          >
+          <form className="admin-task-form" onSubmit={adjustCoins}>
             <label>
               <span>Выбери игрока</span>
-
               <select
                 value={coinUserId}
                 onChange={(event) => setCoinUserId(event.target.value)}
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               >
                 <option value="">Выбрать участника...</option>
-
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    {profile.game_nickname || 'Без никнейма'}
-                    {' — '}
-                    {profile.server || 'Сервер не указан'}
+                    {profile.game_nickname || 'Без никнейма'} — {profile.server || 'Сервер не указан'}
                   </option>
                 ))}
               </select>
@@ -826,7 +922,6 @@ function AdminPanel() {
 
             <label>
               <span>Количество CC</span>
-
               <input
                 type="number"
                 step="1"
@@ -835,53 +930,32 @@ function AdminPanel() {
                 placeholder="Например: 500 или -200"
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               />
             </label>
 
-            <p style={{ opacity: 0.75, fontSize: '13px' }}>
+            <p className="admin-form-hint">
               Положительное число — начисление. Отрицательное — списание.
             </p>
 
             <label>
               <span>Причина операции</span>
-
               <input
                 type="text"
                 value={coinDescription}
-                onChange={(event) =>
-                  setCoinDescription(event.target.value)
-                }
+                onChange={(event) => setCoinDescription(event.target.value)}
                 placeholder="Например: награда за активность"
                 required
                 disabled={loading}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  marginTop: '8px',
-                  borderRadius: '10px'
-                }}
               />
             </label>
 
-            <button
-              type="submit"
-              disabled={loading || profiles.length === 0}
-            >
+            <button type="submit" disabled={loading || profiles.length === 0}>
               {loading ? 'Выполняется...' : 'Выполнить операцию'}
             </button>
           </form>
 
           <div style={{ marginTop: '28px' }}>
             <h3>Кошельки игроков</h3>
-
             {profiles.length === 0 ? (
               <p className="admin-empty">Участники не найдены.</p>
             ) : (
@@ -894,20 +968,13 @@ function AdminPanel() {
                   return (
                     <article className="admin-member" key={profile.id}>
                       <div>
-                        <strong>
-                          {profile.game_nickname || 'Без никнейма'}
-                        </strong>
-
-                        <span>
-                          {profile.server || 'Сервер не указан'}
-                        </span>
+                        <strong>{profile.game_nickname || 'Без никнейма'}</strong>
+                        <span>{profile.server || 'Сервер не указан'}</span>
                       </div>
-
                       <div className="admin-member-rank">
                         <strong>
                           {Number(wallet?.balance ?? 0).toLocaleString('ru-RU')} CC
                         </strong>
-
                         <span>Баланс</span>
                       </div>
                     </article>
@@ -924,61 +991,35 @@ function AdminPanel() {
         <h3>Заявки на вступление в CORZA</h3>
 
         {joinRequests.length === 0 ? (
-          <p className="admin-empty">
-            Заявок на вступление пока нет.
-          </p>
+          <p className="admin-empty">Заявок на вступление пока нет.</p>
         ) : (
           <div className="admin-list">
             {joinRequests.map((request) => {
-              const pending = ['pending', 'На рассмотрении'].includes(
-                request.status
-              )
+              const pending = ['pending', 'На рассмотрении'].includes(request.status)
 
               return (
                 <article className="admin-request" key={request.id}>
                   <div className="admin-request-info">
-                    <strong>
-                      {request.game_nickname || 'Без никнейма'}
-                    </strong>
-
-                    <span>
-                      Сервер: {request.server || 'Не указан'}
-                    </span>
-
-                    <span>
-                      Возраст персонажа: {request.character_age || 'Не указан'}
-                    </span>
-
-                    <p>
-                      Опыт: {request.expirience || 'Не указан'}
-                    </p>
-
-                    <p>
-                      Причина вступления: {request.reason || 'Не указана'}
-                    </p>
-
-                    <small>
-                      Статус: {request.status || 'На рассмотрении'}
-                    </small>
+                    <strong>{request.game_nickname || 'Без никнейма'}</strong>
+                    <span>Сервер: {request.server || 'Не указан'}</span>
+                    <span>Возраст персонажа: {request.character_age || 'Не указан'}</span>
+                    <p>Опыт: {request.expirience || 'Не указан'}</p>
+                    <p>Причина вступления: {request.reason || 'Не указана'}</p>
+                    <small>Статус: {request.status || 'На рассмотрении'}</small>
 
                     {pending && (
                       <div className="admin-actions">
                         <button
                           type="button"
                           disabled={loading}
-                          onClick={() =>
-                            reviewJoinRequest(request.id, 'approved')
-                          }
+                          onClick={() => reviewJoinRequest(request.id, 'approved')}
                         >
                           Одобрить
                         </button>
-
                         <button
                           type="button"
                           disabled={loading}
-                          onClick={() =>
-                            reviewJoinRequest(request.id, 'rejected')
-                          }
+                          onClick={() => reviewJoinRequest(request.id, 'rejected')}
                         >
                           Отклонить
                         </button>
@@ -1004,48 +1045,31 @@ function AdminPanel() {
               const member = profiles.find(
                 (profile) => profile.id === request.user_id
               )
-
-              const pending = ['pending', 'На рассмотрении'].includes(
-                request.status
-              )
+              const pending = ['pending', 'На рассмотрении'].includes(request.status)
 
               return (
                 <article className="admin-request" key={request.id}>
                   <div className="admin-request-info">
-                    <strong>
-                      {member?.game_nickname || 'Неизвестный участник'}
-                    </strong>
-
+                    <strong>{member?.game_nickname || 'Неизвестный участник'}</strong>
                     <span>
-                      {request.current_rank || 'Ранг не указан'}
-                      {' → '}
-                      {request.desired_rank || 'Не указан'}
+                      {request.current_rank || 'Ранг не указан'} → {request.desired_rank || 'Не указан'}
                     </span>
-
                     <p>{request.reason || 'Причина не указана.'}</p>
-
-                    <small>
-                      Статус: {request.status || 'На рассмотрении'}
-                    </small>
+                    <small>Статус: {request.status || 'На рассмотрении'}</small>
 
                     {pending && (
                       <div className="admin-actions">
                         <button
                           type="button"
                           disabled={loading}
-                          onClick={() =>
-                            reviewRequest(request.id, 'approved')
-                          }
+                          onClick={() => reviewRequest(request.id, 'approved')}
                         >
                           Одобрить
                         </button>
-
                         <button
                           type="button"
                           disabled={loading}
-                          onClick={() =>
-                            reviewRequest(request.id, 'rejected')
-                          }
+                          onClick={() => reviewRequest(request.id, 'rejected')}
                         >
                           Отклонить
                         </button>
@@ -1070,15 +1094,9 @@ function AdminPanel() {
             {profiles.map((profile) => (
               <article className="admin-member" key={profile.id}>
                 <div>
-                  <strong>
-                    {profile.game_nickname || 'Без никнейма'}
-                  </strong>
-
-                  <span>
-                    {profile.server || 'Сервер не указан'}
-                  </span>
+                  <strong>{profile.game_nickname || 'Без никнейма'}</strong>
+                  <span>{profile.server || 'Сервер не указан'}</span>
                 </div>
-
                 <div className="admin-member-rank">
                   <strong>{profile.rank || 'Новичок'}</strong>
                   <span>{profile.position || 'Участник'}</span>
