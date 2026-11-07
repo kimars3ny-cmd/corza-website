@@ -29,7 +29,7 @@ const leaders = [
     name: 'Senya',
     description: 'Контроль состава и развития',
     initials: 'S',
-    avatar: 'https://i.pravatar.cc/300?img=14',
+    avatar: 'https://pin.it/3qqScDxVm',
   },
   {
     role: 'Заместитель главы',
