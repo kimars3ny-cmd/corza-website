@@ -258,16 +258,24 @@ function App() {
           <span>CORZA</span>
         </a>
 
-        <nav>
-          <a href="#home">Главная</a>
-          <a href="#about">О семье</a>
-          <a href="#leaders">Руководство</a>
-          <a href="#coins">Рейтинг CC</a>
-          <a href="#tasks">Задания</a>
-          <a href="#join">Вступление</a>
-          <a href="#promotion">Повышение</a>
-          <a href="#government">Структуры</a>
-        </nav>
+        
+  <nav>
+    <a href="#home">Главная</a>
+    <a href="#about">О семье</a>
+    <a href="#leaders">Руководство</a>
+    <a href="#coins">Рейтинг CC</a>
+
+    {user && (
+    <>
+      <a href="#tasks">Задания</a>
+      <a href="#join">Вступление</a>
+      <a href="#promotion">Повышение</a>
+    </>
+    )}
+
+  <a href="#government">Структуры</a>
+</nav>
+
 
         {user ? (
           <button
