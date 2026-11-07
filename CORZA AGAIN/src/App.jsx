@@ -15,14 +15,14 @@ const leaders = [
     name: 'Atlantica',
     description: 'Главное руководство CORZA',
     initials: 'A',
-    avatar: 'https://i.pravatar.cc/300?img=12',
+    avatar: 'https://i.pinimg.com/736x/f2/d3/e1/f2d3e15af54704f10dcd81d5c576e2e5.jpg',
   },
   {
     role: 'Глава семьи',
     name: 'Entro',
     description: 'Главное руководство CORZA',
     initials: 'E',
-    avatar: 'https://i.pravatar.cc/300?img=13',
+    avatar: 'https://i.pinimg.com/736x/f1/e3/9e/f1e39e5b37047bd564deda9ccec89d77.jpg',
   },
   {
     role: 'Заместитель главы',
@@ -36,14 +36,14 @@ const leaders = [
     name: 'Yoshi',
     description: 'Контроль состава и развития',
     initials: 'Y',
-    avatar: 'https://i.pravatar.cc/300?img=15',
+    avatar: 'https://i.pinimg.com/736x/8c/b7/dd/8cb7dd86f301570d577dedc8bf5ca4ea.jpg',
   },
   {
     role: 'Заместитель главы',
     name: 'Artemka',
     description: 'Контроль состава и развития',
     initials: 'A',
-    avatar: 'https://i.pravatar.cc/300?img=16',
+    avatar: 'https://i.pinimg.com/736x/20/7a/23/207a23290eccb98a14050f453f9ffbc3.jpg',
   },
 ]
 
