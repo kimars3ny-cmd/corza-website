@@ -2561,3 +2561,59 @@ footer > span {
     min-width: 100px;
   }
 }
+
+/* CORZA — ЛЕВАЯ ПАНЕЛЬ */
+
+.side-admin-panel {
+  position: fixed;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+}
+
+.side-admin-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(25, 25, 65, 0.78);
+  border: 1px solid rgba(160, 140, 255, 0.35);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 0 25px rgba(110, 80, 255, 0.18);
+  transition: all 0.3s ease;
+}
+
+.side-admin-button:hover {
+  transform: translateX(6px);
+  border-color: #a78bfa;
+  box-shadow: 0 0 30px rgba(130, 100, 255, 0.4);
+}
+
+.side-admin-icon {
+  font-size: 21px;
+  color: #b69aff;
+}
+
+@media (max-width: 768px) {
+  .side-admin-panel {
+    left: 10px;
+    top: auto;
+    bottom: 20px;
+    transform: none;
+  }
+
+  .side-admin-button {
+    padding: 13px;
+  }
+
+  .side-admin-button span:last-child {
+    display: none;
+  }
+}

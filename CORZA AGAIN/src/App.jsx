@@ -273,6 +273,14 @@ function App() {
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
+      {/* ЛЕВАЯ КНОПКА АДМИНИСТРИРОВАНИЯ */}
+      <aside className="side-admin-panel">
+        <a href="#admin" className="side-admin-button">
+          <span className="side-admin-icon">⚙</span>
+          <span>Администрирование</span>
+        </a>
+      </aside>
+
       <header className="navbar glass">
         <a className="logo" href="#home">
           <span className="logo-symbol">C</span>
@@ -709,8 +717,6 @@ function App() {
         <p>© 2026 CORZA FAMILY. ALL RIGHTS RESERVED.</p>
 
         <span>MAJESTIC ROLEPLAY</span>
-
-        <a href="#admin">Администрирование</a>
       </footer>
 
       <DiscordWidget />
