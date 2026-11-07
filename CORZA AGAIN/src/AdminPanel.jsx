@@ -6,6 +6,7 @@ function AdminPanel() {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLevelOne, setIsLevelOne] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
   const [checking, setChecking] = useState(true)
 
   const [profiles, setProfiles] = useState([])
@@ -23,7 +24,7 @@ function AdminPanel() {
 
   const [selectedAdminUserId, setSelectedAdminUserId] = useState('')
 
-  // Проверка уровня администратора
+  // Проверка прав пользователя
   useEffect(() => {
     let active = true
 
@@ -33,6 +34,7 @@ function AdminPanel() {
           setUser(null)
           setIsAdmin(false)
           setIsLevelOne(false)
+          setIsOwner(false)
           setChecking(false)
         }
         return
@@ -41,19 +43,24 @@ function AdminPanel() {
       setUser(sessionUser)
       setChecking(true)
 
-      const [adminResult, levelOneResult] = await Promise.all([
-        supabase.rpc('is_corza_admin'),
-        supabase.rpc('is_corza_admin_level_one')
-      ])
+      const [adminResult, levelOneResult, ownerResult] =
+        await Promise.all([
+          supabase.rpc('is_corza_admin'),
+          supabase.rpc('is_corza_admin_level_one'),
+          supabase.rpc('is_corza_owner')
+        ])
 
       if (!active) return
 
       const admin = !adminResult.error && adminResult.data === true
       const levelOne =
         !levelOneResult.error && levelOneResult.data === true
+      const owner =
+        !ownerResult.error && ownerResult.data === true
 
       setIsAdmin(admin)
       setIsLevelOne(admin && levelOne)
+      setIsOwner(admin && owner)
       setChecking(false)
     }
 
@@ -73,7 +80,7 @@ function AdminPanel() {
     }
   }, [])
 
-  // Загрузка данных
+  // Загрузка данных панели
   async function loadAdminData() {
     setLoading(true)
     setMessage('')
@@ -158,7 +165,7 @@ function AdminPanel() {
     }
   }, [isAdmin, isLevelOne])
 
-  // Начисление и списание CC — только первый уровень
+  // Начисление и списание CC
   async function adjustCoins(event) {
     event.preventDefault()
 
@@ -212,10 +219,11 @@ function AdminPanel() {
     )
   }
 
-  // Выдача или снятие второго уровня
+  // Назначение и снятие прав администратора
+  // 1 — администратор, 2 — младший администратор, -1 — снять права
   async function manageAdmin(userId, adminLevel) {
     if (!isLevelOne) {
-      setMessage('Только администратор 1 уровня может управлять правами.')
+      setMessage('Недостаточно прав для управления администраторами.')
       return
     }
 
@@ -225,12 +233,37 @@ function AdminPanel() {
     }
 
     const target = profiles.find((profile) => profile.id === userId)
+    const targetAdmin = admins.find((admin) => admin.user_id === userId)
     const targetName = target?.game_nickname || 'Игрок'
 
-    const action =
-      adminLevel === 2
-        ? `назначить ${targetName} администратором 2 уровня?`
-        : `снять права администратора 2 уровня у ${targetName}?`
+    if (targetAdmin && Number(targetAdmin.admin_level) === 0) {
+      setMessage('Нельзя изменять права владельца.')
+      return
+    }
+
+    if (!isOwner && adminLevel === 1) {
+      setMessage('Назначать администраторов 1 уровня может только владелец.')
+      return
+    }
+
+    if (
+      !isOwner &&
+      adminLevel === -1 &&
+      Number(targetAdmin?.admin_level) !== 2
+    ) {
+      setMessage('Ты можешь снимать права только у младших администраторов.')
+      return
+    }
+
+    let action = ''
+
+    if (adminLevel === 1) {
+      action = `назначить ${targetName} администратором 1 уровня?`
+    } else if (adminLevel === 2) {
+      action = `назначить ${targetName} младшим администратором?`
+    } else {
+      action = `снять права администратора у ${targetName}?`
+    }
 
     if (!window.confirm(`Ты уверен, что хочешь ${action}`)) {
       return
@@ -239,7 +272,7 @@ function AdminPanel() {
     setLoading(true)
     setMessage('Изменяем права администратора...')
 
-    const { data, error } = await supabase.rpc(
+    const { error } = await supabase.rpc(
       'manage_corza_admin',
       {
         p_target_user_id: userId,
@@ -256,7 +289,11 @@ function AdminPanel() {
     setSelectedAdminUserId('')
     await loadAdminData()
 
-    setMessage(data || 'Права администратора обновлены.')
+    setMessage(
+      adminLevel === -1
+        ? `Права администратора у ${targetName} сняты.`
+        : `${targetName} получил новые права администратора.`
+    )
   }
 
   // Обработка заявки на повышение
@@ -332,6 +369,19 @@ function AdminPanel() {
     (profile) => !admins.some((admin) => admin.user_id === profile.id)
   )
 
+  function getAdminRole(level) {
+    switch (Number(level)) {
+      case 0:
+        return 'Владелец'
+      case 1:
+        return 'Администратор 1 уровня'
+      case 2:
+        return 'Младший администратор'
+      default:
+        return 'Неизвестная роль'
+    }
+  }
+
   return (
     <section className="admin-section" id="admin">
       <div className="admin-heading">
@@ -343,9 +393,11 @@ function AdminPanel() {
           </h2>
 
           <p>
-            {isLevelOne
-              ? 'Администратор 1 уровня — полный доступ.'
-              : 'Администратор 2 уровня — управление заявками.'}
+            {isOwner
+              ? 'Владелец — полный доступ ко всем функциям сайта.'
+              : isLevelOne
+                ? 'Администратор 1 уровня — полный доступ к управлению сайтом.'
+                : 'Администратор 2 уровня — управление заявками.'}
           </p>
         </div>
 
@@ -382,13 +434,15 @@ function AdminPanel() {
         </div>
       </div>
 
-      {/* Управление администраторами — только первый уровень */}
+      {/* Управление администраторами */}
       {isLevelOne && (
         <div className="admin-block glass">
           <h3>Управление администраторами</h3>
 
           <p>
-            Здесь можно назначать и снимать права администратора 2 уровня.
+            {isOwner
+              ? 'Владелец может назначать администраторов обоих уровней и снимать их права.'
+              : 'Ты можешь назначать младших администраторов и снимать их права.'}
           </p>
 
           <div
@@ -428,12 +482,22 @@ function AdminPanel() {
               </select>
             </label>
 
+            {isOwner && (
+              <button
+                type="button"
+                disabled={loading || !selectedAdminUserId}
+                onClick={() => manageAdmin(selectedAdminUserId, 1)}
+              >
+                Назначить администратора 1 уровня
+              </button>
+            )}
+
             <button
               type="button"
               disabled={loading || !selectedAdminUserId}
               onClick={() => manageAdmin(selectedAdminUserId, 2)}
             >
-              Назначить администратора 2 уровня
+              Назначить младшего администратора
             </button>
           </div>
 
@@ -451,6 +515,11 @@ function AdminPanel() {
                     (profile) => profile.id === admin.user_id
                   )
 
+                  const level = Number(admin.admin_level)
+                  const canRemove =
+                    (isOwner && level !== 0) ||
+                    (!isOwner && level === 2)
+
                   return (
                     <article className="admin-member" key={admin.user_id}>
                       <div>
@@ -464,24 +533,22 @@ function AdminPanel() {
                       </div>
 
                       <div className="admin-member-rank">
-                        <strong>
-                          {Number(admin.admin_level) === 1
-                            ? '1 уровень'
-                            : '2 уровень'}
-                        </strong>
+                        <strong>{getAdminRole(level)}</strong>
 
-                        <span>Администратор</span>
-
-                        {Number(admin.admin_level) === 2 && (
+                        {canRemove && (
                           <button
                             type="button"
                             disabled={loading}
                             onClick={() =>
-                              manageAdmin(admin.user_id, 0)
+                              manageAdmin(admin.user_id, -1)
                             }
                           >
                             Снять права
                           </button>
+                        )}
+
+                        {level === 0 && (
+                          <span>Главный владелец сайта</span>
                         )}
                       </div>
                     </article>
@@ -493,7 +560,7 @@ function AdminPanel() {
         </div>
       )}
 
-      {/* Corza Coin — только первый уровень */}
+      {/* Corza Coin */}
       {isLevelOne && (
         <div className="admin-block glass">
           <h3>Управление Corza Coin</h3>
@@ -634,7 +701,7 @@ function AdminPanel() {
         </div>
       )}
 
-      {/* Заявки на вступление — оба уровня */}
+      {/* Заявки на вступление */}
       <div className="admin-block glass">
         <h3>Заявки на вступление в CORZA</h3>
 
@@ -707,7 +774,7 @@ function AdminPanel() {
         )}
       </div>
 
-      {/* Заявки на повышение — оба уровня */}
+      {/* Заявки на повышение */}
       <div className="admin-block glass">
         <h3>Заявки на повышение</h3>
 
