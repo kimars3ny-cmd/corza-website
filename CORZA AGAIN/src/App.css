@@ -2686,3 +2686,213 @@ footer > span {
     opacity: 0.3;
   }
 }
+
+
+/* =========================================
+   СОЗДАНИЕ ЗАДАНИЙ CORZA COIN
+   ========================================= */
+
+.admin-task-create {
+  position: relative;
+  overflow: hidden;
+  padding: 30px;
+  margin-top: 25px;
+  border: 1px solid rgba(120, 155, 255, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(115, 90, 255, 0.12),
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(18, 28, 65, 0.72),
+      rgba(12, 17, 42, 0.82)
+    );
+  box-shadow:
+    0 15px 45px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.admin-task-create h3 {
+  color: #f3f6ff;
+  font-size: 23px;
+  margin-bottom: 12px;
+}
+
+.admin-task-create > p {
+  color: #aebce0;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.admin-task-form {
+  display: grid;
+  gap: 17px;
+  max-width: 650px;
+  margin-top: 22px;
+}
+
+.admin-task-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #dce7ff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-task-form input:not([type="checkbox"]),
+.admin-task-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid rgba(125, 160, 255, 0.2);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(7, 13, 35, 0.75);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  transition: 0.25s ease;
+}
+
+.admin-task-form input::placeholder,
+.admin-task-form textarea::placeholder {
+  color: #7180a7;
+}
+
+.admin-task-form input:focus,
+.admin-task-form textarea:focus {
+  border-color: #7d9cff;
+  box-shadow: 0 0 0 3px rgba(100, 130, 255, 0.13);
+}
+
+.admin-task-form textarea {
+  min-height: 125px;
+  resize: vertical;
+}
+
+.admin-task-reward {
+  position: relative;
+}
+
+.admin-task-checkbox {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 11px !important;
+  cursor: pointer;
+  color: #cbd8ff !important;
+}
+
+.admin-task-checkbox input {
+  width: 17px;
+  height: 17px;
+  accent-color: #8b7cff;
+  cursor: pointer;
+}
+
+.admin-task-submit {
+  min-height: 48px;
+  padding: 13px 20px;
+  border: 1px solid rgba(155, 170, 255, 0.35);
+  border-radius: 13px;
+  background: linear-gradient(110deg, #536eff, #9063e9);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.admin-task-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(105, 105, 255, 0.3);
+  filter: brightness(1.12);
+}
+
+.admin-task-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-task-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 25px;
+}
+
+.admin-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 19px;
+  border: 1px solid rgba(125, 155, 255, 0.15);
+  border-radius: 16px;
+  background: rgba(14, 23, 53, 0.65);
+  transition: 0.25s ease;
+}
+
+.admin-task-item:hover {
+  border-color: rgba(130, 155, 255, 0.4);
+  background: rgba(25, 35, 75, 0.75);
+  transform: translateY(-2px);
+}
+
+.admin-task-item h4 {
+  color: #f0f4ff;
+  font-size: 16px;
+  margin: 0 0 9px;
+}
+
+.admin-task-item p {
+  color: #aebce0;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+.admin-task-reward-label {
+  color: #8fe5ff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-task-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 20px;
+  background: rgba(65, 220, 160, 0.1);
+  border: 1px solid rgba(65, 220, 160, 0.2);
+  color: #73edbc;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-task-status.inactive {
+  background: rgba(255, 170, 80, 0.1);
+  border-color: rgba(255, 170, 80, 0.2);
+  color: #ffc17c;
+}
+
+@media (max-width: 650px) {
+  .admin-task-create {
+    padding: 20px 15px;
+    border-radius: 17px;
+  }
+
+  .admin-task-create h3 {
+    font-size: 19px;
+  }
+
+  .admin-task-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
