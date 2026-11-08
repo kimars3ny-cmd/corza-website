@@ -42,7 +42,7 @@ const leaders = [
   {
     role: 'Заместитель главы',
     name: 'Artemka',
-    description: 'Ответственный за лидерские сроки и контроль за составом семьи'
+    description: 'Ответственный за лидерские сроки и контроль за составом семьи',
     initials: 'A',
     avatar: 'https://i.pinimg.com/736x/20/7a/23/207a23290eccb98a14050f453f9ffbc3.jpg',
   },
