@@ -3340,3 +3340,233 @@ footer > span {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+
+/* =========================================
+   УПРАВЛЕНИЕ АДМИНИСТРАТОРАМИ
+   ========================================= */
+
+.admin-block:has(.admin-task-form) {
+  position: relative;
+}
+
+.admin-block > h3 {
+  color: #e9e7ff;
+  font-size: 21px;
+  font-weight: 800;
+  margin-bottom: 15px;
+}
+
+.admin-block > p {
+  color: rgba(225, 225, 255, 0.65);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Форма управления администраторами */
+
+.admin-block .admin-task-form {
+  display: grid;
+  gap: 14px;
+  max-width: 620px;
+  margin-top: 22px;
+}
+
+.admin-block .admin-task-form label {
+  display: grid;
+  gap: 9px;
+}
+
+.admin-block .admin-task-form label span {
+  color: #d7d5f3;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Выпадающий список */
+
+.admin-block .admin-task-form select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 17px;
+  border-radius: 13px;
+  border: 1px solid rgba(145, 130, 255, 0.35);
+  background: rgba(8, 10, 32, 0.85);
+  color: #f1efff;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: 0.25s ease;
+  box-sizing: border-box;
+}
+
+.admin-block .admin-task-form select:hover {
+  border-color: rgba(165, 145, 255, 0.7);
+  background: rgba(15, 17, 48, 0.95);
+}
+
+.admin-block .admin-task-form select:focus {
+  border-color: #a18aff;
+  box-shadow: 0 0 0 3px rgba(140, 110, 255, 0.15);
+}
+
+.admin-block .admin-task-form select option {
+  background: #171632;
+  color: #fff;
+}
+
+/* Кнопки назначения */
+
+.admin-block .admin-task-form > button {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 18px;
+  border-radius: 11px;
+  border: 1px solid rgba(145, 130, 255, 0.4);
+  background: linear-gradient(
+    110deg,
+    rgba(91, 91, 220, 0.9),
+    rgba(139, 81, 205, 0.9)
+  );
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.admin-block .admin-task-form > button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 22px rgba(112, 91, 230, 0.3);
+  filter: brightness(1.15);
+}
+
+.admin-block .admin-task-form > button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Неактивные кнопки */
+
+.admin-block .admin-task-form > button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+  box-shadow: none;
+}
+
+/* Разделитель списка администраторов */
+
+.admin-block .admin-task-form + div {
+  padding-top: 25px;
+  border-top: 1px solid rgba(150, 135, 255, 0.2);
+}
+
+.admin-block .admin-task-form + div > h3 {
+  margin-bottom: 20px;
+  color: #a991ff;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+/* Карточки действующих администраторов */
+
+.admin-block .admin-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(145, 130, 255, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(
+    120deg,
+    rgba(100, 90, 190, 0.12),
+    rgba(70, 65, 140, 0.08)
+  );
+  transition: 0.25s ease;
+}
+
+.admin-block .admin-member:hover {
+  border-color: rgba(160, 140, 255, 0.45);
+  background: rgba(110, 95, 200, 0.13);
+}
+
+.admin-block .admin-member > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-block .admin-member > div:first-child strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.admin-block .admin-member > div:first-child span {
+  color: rgba(220, 220, 255, 0.55);
+  font-size: 12px;
+}
+
+.admin-member-rank {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.admin-member-rank strong {
+  color: #b6a1ff;
+  font-size: 13px;
+}
+
+.admin-member-rank span {
+  color: rgba(220, 220, 255, 0.55);
+  font-size: 11px;
+}
+
+/* Снятие прав администратора */
+
+.admin-member-rank button {
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 100, 125, 0.3);
+  border-radius: 9px;
+  background: rgba(210, 65, 90, 0.13);
+  color: #ff9eae;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.admin-member-rank button:hover:not(:disabled) {
+  background: rgba(220, 65, 90, 0.28);
+  border-color: rgba(255, 100, 125, 0.65);
+}
+
+.admin-member-rank button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Мобильная версия */
+
+@media (max-width: 650px) {
+  .admin-block .admin-task-form {
+    max-width: 100%;
+  }
+
+  .admin-block .admin-member {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-member-rank {
+    align-items: flex-start;
+  }
+
+  .admin-member-rank button {
+    width: 100%;
+  }
+}
