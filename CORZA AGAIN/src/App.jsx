@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
@@ -13,35 +14,35 @@ const leaders = [
   {
     role: 'Глава семьи',
     name: 'Atlantica',
-    description: 'Главное руководство CORZA',
+    description: 'Главное руководство CORZA. Ответственный за лидерские сроки Государственных структур. Коллер',
     initials: 'A',
     avatar: 'https://i.pinimg.com/736x/f2/d3/e1/f2d3e15af54704f10dcd81d5c576e2e5.jpg',
   },
   {
     role: 'Глава семьи',
     name: 'Entro',
-    description: 'Главное руководство CORZA',
+    description: 'Главное руководство CORZA. Создатель семьи CORZA.',
     initials: 'E',
     avatar: 'https://i.pinimg.com/736x/f1/e3/9e/f1e39e5b37047bd564deda9ccec89d77.jpg',
   },
   {
     role: 'Заместитель главы',
     name: 'Senya',
-    description: 'Контроль состава и развития',
+    description: 'Ответственный за состав, за медиа семьи и техническую составляющую.',
     initials: 'S',
     avatar: 'https://i.pinimg.com/736x/2b/c4/2e/2bc42ea5266d4ab730335de5a2c36cfc.jpg',
   },
   {
     role: 'Заместитель главы',
     name: 'Yoshi',
-    description: 'Контроль состава и развития',
+    description: 'Ответствееный за продвижение медиа семьи. Медиа лицо семьи',
     initials: 'Y',
     avatar: 'https://i.pinimg.com/736x/8c/b7/dd/8cb7dd86f301570d577dedc8bf5ca4ea.jpg',
   },
   {
     role: 'Заместитель главы',
     name: 'Artemka',
-    description: 'Контроль состава и развития',
+    description: 'Ответственный за лидерские сроки и контроль за составом семьи'
     initials: 'A',
     avatar: 'https://i.pinimg.com/736x/20/7a/23/207a23290eccb98a14050f453f9ffbc3.jpg',
   },
@@ -122,10 +123,15 @@ function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
 
+  // Проверка прав администратора
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true)
+
   const [coinLeaderboard, setCoinLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState('')
 
+  // Получение пользователя
   useEffect(() => {
     let active = true
 
@@ -159,6 +165,7 @@ function App() {
     }
   }, [])
 
+  // Загрузка профиля
   useEffect(() => {
     let active = true
 
@@ -192,6 +199,42 @@ function App() {
     }
   }, [user])
 
+  // Проверка прав администратора через Supabase RPC
+  useEffect(() => {
+    let active = true
+
+    async function checkAdmin() {
+      if (!user) {
+        setIsAdmin(false)
+        setAdminCheckLoading(false)
+        return
+      }
+
+      setAdminCheckLoading(true)
+      setIsAdmin(false)
+
+      const { data, error } = await supabase.rpc('is_corza_admin')
+
+      if (!active) return
+
+      if (error) {
+        console.error('Ошибка проверки прав администратора:', error)
+        setIsAdmin(false)
+      } else {
+        setIsAdmin(data === true)
+      }
+
+      setAdminCheckLoading(false)
+    }
+
+    checkAdmin()
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  // Загрузка рейтинга Corza Coin
   useEffect(() => {
     let active = true
 
@@ -223,6 +266,7 @@ function App() {
     }
   }, [])
 
+  // Переключение страниц
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
@@ -275,13 +319,15 @@ function App() {
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
-      {/* ЛЕВАЯ КНОПКА АДМИНИСТРИРОВАНИЯ */}
-      <aside className="side-admin-panel">
-        <a href="#admin" className="side-admin-button">
-          <span className="side-admin-icon">⚙</span>
-          <span>Администрирование</span>
-        </a>
-      </aside>
+      {/* ЛЕВАЯ КНОПКА АДМИНИСТРИРОВАНИЯ — ТОЛЬКО ДЛЯ АДМИНОВ */}
+      {user && isAdmin && !adminCheckLoading && (
+        <aside className="side-admin-panel">
+          <a href="#admin" className="side-admin-button">
+            <span className="side-admin-icon">⚙</span>
+            <span>Администрирование</span>
+          </a>
+        </aside>
+      )}
 
       <header className="navbar glass">
         <a className="logo" href="#home">
@@ -333,6 +379,7 @@ function App() {
       <main>
         {page === 'home' && (
           <>
+            {/* ГЛАВНЫЙ ЭКРАН */}
             <section className="hero" id="home">
               <div className="hero-content">
                 <div className="eyebrow">
@@ -398,6 +445,7 @@ function App() {
               </div>
             </section>
 
+            {/* О СЕМЬЕ */}
             <section className="about-section" id="about">
               <div className="section-heading">
                 <span className="section-label">01 / О ПРОЕКТЕ</span>
@@ -413,6 +461,7 @@ function App() {
               </div>
             </section>
 
+            {/* РУКОВОДСТВО */}
             <section className="leaders-section" id="leaders">
               <div className="section-top">
                 <div>
@@ -445,6 +494,7 @@ function App() {
               </div>
             </section>
 
+            {/* РЕЙТИНГ CORZA COIN */}
             <section
               className="features-section"
               id="coins"
@@ -481,6 +531,7 @@ function App() {
                 ) : leaderboardError ? (
                   <div style={{ textAlign: 'center', padding: '30px' }}>
                     <h3>Не удалось загрузить рейтинг</h3>
+
                     <p style={{ opacity: 0.7, marginTop: '10px' }}>
                       {leaderboardError}
                     </p>
@@ -603,6 +654,7 @@ function App() {
               </div>
             </section>
 
+            {/* РАЗДЕЛЫ САЙТА */}
             <section className="features-section" id="features">
               <div className="section-heading">
                 <span className="section-label">04 / ИНФРАСТРУКТУРА</span>
@@ -628,6 +680,7 @@ function App() {
               </div>
             </section>
 
+            {/* ПРИГЛАШЕНИЕ В СЕМЬЮ */}
             <section className="join-section">
               <div className="join-card glass">
                 <span className="section-label">
@@ -650,16 +703,20 @@ function App() {
           </>
         )}
 
+        {/* ЗАДАНИЯ */}
         {page === 'tasks' && <TasksPage />}
 
+        {/* ВСТУПЛЕНИЕ */}
         {page === 'join' && (
           <JoinPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
+        {/* ПОВЫШЕНИЕ */}
         {page === 'promotion' && (
           <PromotionPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
+        {/* ГОСУДАРСТВЕННЫЕ СТРУКТУРЫ */}
         {page === 'government' && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / GOVERNMENT</span>
@@ -684,6 +741,7 @@ function App() {
           </section>
         )}
 
+        {/* ПЕРЕВОДЫ */}
         {page === 'transfers' && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / TRANSFERS</span>
@@ -707,7 +765,10 @@ function App() {
           </section>
         )}
 
-        {page === 'admin' && <AdminPanel />}
+        {/* АДМИН-ПАНЕЛЬ — ТОЛЬКО ДЛЯ АДМИНИСТРАТОРОВ */}
+        {page === 'admin' && isAdmin && !adminCheckLoading && (
+          <AdminPanel />
+        )}
       </main>
 
       <footer>
