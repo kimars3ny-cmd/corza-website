@@ -35,7 +35,7 @@ const leaders = [
   {
     role: 'Заместитель главы',
     name: 'Yoshi',
-    description: 'Ответствееный за продвижение медиа семьи. Медиа лицо семьи',
+    description: 'Ответственый за продвижение медиа семьи. Медиа лицо семьи',
     initials: 'Y',
     avatar: 'https://i.pinimg.com/736x/8c/b7/dd/8cb7dd86f301570d577dedc8bf5ca4ea.jpg',
   },
