@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
@@ -16,6 +15,7 @@ function AdminPanel() {
   const [admins, setAdmins] = useState([])
   const [tasks, setTasks] = useState([])
   const [taskSubmissions, setTaskSubmissions] = useState([])
+  const [blatApplications, setBlatApplications] = useState([])
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -99,7 +99,8 @@ function AdminPanel() {
       walletsResult,
       adminsResult,
       tasksResult,
-      submissionsResult
+      submissionsResult,
+      blatResult
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -133,6 +134,12 @@ function AdminPanel() {
       // Заявки на выполнение заданий
       supabase
         .from('corza_task_submissions')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      // Заявки на День блата
+      supabase
+        .from('blat_applications')
         .select('*')
         .order('created_at', { ascending: false })
     ])
@@ -181,6 +188,12 @@ function AdminPanel() {
       errors.push('Заявки на выполнение заданий: ' + submissionsResult.error.message)
     } else {
       setTaskSubmissions(submissionsResult.data || [])
+    }
+
+    if (blatResult.error) {
+      errors.push('Заявки на День блата: ' + blatResult.error.message)
+    } else {
+      setBlatApplications(blatResult.data || [])
     }
 
     if (errors.length) {
@@ -517,6 +530,67 @@ function AdminPanel() {
       : 'Заявка на вступление отклонена.')
   }
 
+  // Обработка заявки на День блата
+  async function reviewBlatApplication(applicationId, status) {
+    if (!isAdmin) {
+      setMessage('У тебя нет прав для проверки заявок.')
+      return
+    }
+
+    const application = blatApplications.find(
+      (item) => item.id === applicationId
+    )
+
+    if (!application || application.status !== 'pending') {
+      setMessage('Эта заявка уже была проверена.')
+      return
+    }
+
+    let comment = ''
+
+    if (status === 'rejected') {
+      const answer = window.prompt(
+        'Укажи причину отклонения заявки:',
+        'Заявка не соответствует требованиям.'
+      )
+
+      if (answer === null) return
+
+      comment = answer.trim()
+
+      if (!comment) {
+        setMessage('Укажи причину отклонения.')
+        return
+      }
+    }
+
+    setLoading(true)
+    setMessage('Обрабатываем заявку на День блата...')
+
+    const { error } = await supabase
+      .from('blat_applications')
+      .update({
+        status,
+        admin_comment: comment || null,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id
+      })
+      .eq('id', applicationId)
+      .eq('status', 'pending')
+
+    if (error) {
+      setMessage('Ошибка обработки заявки на День блата: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    await loadAdminData()
+
+    setMessage(status === 'approved'
+      ? 'Заявка на День блата одобрена.'
+      : 'Заявка на День блата отклонена.')
+  }
+
   if (checking) return null
   if (!isAdmin) return null
 
@@ -529,6 +603,10 @@ function AdminPanel() {
   )
 
   const pendingTaskSubmissions = taskSubmissions.filter(
+    (item) => item.status === 'pending'
+  )
+
+  const pendingBlatApplications = blatApplications.filter(
     (item) => item.status === 'pending'
   )
 
@@ -588,13 +666,18 @@ function AdminPanel() {
 
         <div className="admin-stat glass">
           <span>Всего заявок</span>
-          <strong>{requests.length + joinRequests.length}</strong>
+          <strong>
+            {requests.length + joinRequests.length + blatApplications.length}
+          </strong>
         </div>
 
         <div className="admin-stat glass">
           <span>На рассмотрении</span>
           <strong>
-            {pendingPromotions.length + pendingJoins.length + pendingTaskSubmissions.length}
+            {pendingPromotions.length +
+              pendingJoins.length +
+              pendingTaskSubmissions.length +
+              pendingBlatApplications.length}
           </strong>
         </div>
       </div>
@@ -862,7 +945,9 @@ function AdminPanel() {
                   const member = profiles.find(
                     (profile) => profile.id === admin.user_id
                   )
+
                   const level = Number(admin.admin_level)
+
                   const canRemove =
                     (isOwner && level !== 0) ||
                     (!isOwner && level === 2)
@@ -876,6 +961,7 @@ function AdminPanel() {
 
                       <div className="admin-member-rank">
                         <strong>{getAdminRole(level)}</strong>
+
                         {canRemove && (
                           <button
                             type="button"
@@ -885,6 +971,7 @@ function AdminPanel() {
                             Снять права
                           </button>
                         )}
+
                         {level === 0 && <span>Главный владелец сайта</span>}
                       </div>
                     </article>
@@ -956,6 +1043,7 @@ function AdminPanel() {
 
           <div style={{ marginTop: '28px' }}>
             <h3>Кошельки игроков</h3>
+
             {profiles.length === 0 ? (
               <p className="admin-empty">Участники не найдены.</p>
             ) : (
@@ -971,6 +1059,7 @@ function AdminPanel() {
                         <strong>{profile.game_nickname || 'Без никнейма'}</strong>
                         <span>{profile.server || 'Сервер не указан'}</span>
                       </div>
+
                       <div className="admin-member-rank">
                         <strong>
                           {Number(wallet?.balance ?? 0).toLocaleString('ru-RU')} CC
@@ -985,6 +1074,99 @@ function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* Заявки на День блата */}
+      <div className="admin-block glass">
+        <div className="task-review-heading">
+          <div>
+            <span className="section-label">CORZA / BLAT DAY</span>
+            <h3>Заявки на День блата</h3>
+            <p>Заявки, отправленные через публичную форму сайта.</p>
+          </div>
+
+          <div className="task-review-counter">
+            <strong>{pendingBlatApplications.length}</strong>
+            <span>Ожидают проверки</span>
+          </div>
+        </div>
+
+        {blatApplications.length === 0 ? (
+          <p className="admin-empty">Заявок на День блата пока нет.</p>
+        ) : (
+          <div className="admin-list">
+            {blatApplications.map((application) => {
+              const pending = application.status === 'pending'
+
+              const statusLabel =
+                application.status === 'approved'
+                  ? 'Одобрено'
+                  : application.status === 'rejected'
+                    ? 'Отклонено'
+                    : 'На рассмотрении'
+
+              return (
+                <article className="admin-request" key={application.id}>
+                  <div className="admin-request-info">
+                    <strong>
+                      {application.game_nickname || 'Без никнейма'}
+                    </strong>
+
+                    <span>
+                      Статик: {application.static || 'Не указан'}
+                    </span>
+
+                    <span>
+                      Подписка на Telegram: {application.subscription_verified
+                        ? 'Подтверждена'
+                        : 'Не подтверждена автоматически'}
+                    </span>
+
+                    {application.telegram_id && (
+                      <span>Telegram ID: {application.telegram_id}</span>
+                    )}
+
+                    <small>
+                      Отправлено: {application.created_at
+                        ? new Date(application.created_at).toLocaleString('ru-RU')
+                        : 'Дата неизвестна'}
+                    </small>
+
+                    <small>Статус: {statusLabel}</small>
+
+                    {application.admin_comment && (
+                      <p>Комментарий: {application.admin_comment}</p>
+                    )}
+
+                    {pending && (
+                      <div className="admin-actions">
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() =>
+                            reviewBlatApplication(application.id, 'approved')
+                          }
+                        >
+                          Одобрить
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() =>
+                            reviewBlatApplication(application.id, 'rejected')
+                          }
+                        >
+                          Отклонить
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Заявки на вступление */}
       <div className="admin-block glass">
@@ -1016,6 +1198,7 @@ function AdminPanel() {
                         >
                           Одобрить
                         </button>
+
                         <button
                           type="button"
                           disabled={loading}
@@ -1045,15 +1228,18 @@ function AdminPanel() {
               const member = profiles.find(
                 (profile) => profile.id === request.user_id
               )
+
               const pending = ['pending', 'На рассмотрении'].includes(request.status)
 
               return (
                 <article className="admin-request" key={request.id}>
                   <div className="admin-request-info">
                     <strong>{member?.game_nickname || 'Неизвестный участник'}</strong>
+
                     <span>
                       {request.current_rank || 'Ранг не указан'} → {request.desired_rank || 'Не указан'}
                     </span>
+
                     <p>{request.reason || 'Причина не указана.'}</p>
                     <small>Статус: {request.status || 'На рассмотрении'}</small>
 
@@ -1066,6 +1252,7 @@ function AdminPanel() {
                         >
                           Одобрить
                         </button>
+
                         <button
                           type="button"
                           disabled={loading}
@@ -1097,6 +1284,7 @@ function AdminPanel() {
                   <strong>{profile.game_nickname || 'Без никнейма'}</strong>
                   <span>{profile.server || 'Сервер не указан'}</span>
                 </div>
+
                 <div className="admin-member-rank">
                   <strong>{profile.rank || 'Новичок'}</strong>
                   <span>{profile.position || 'Участник'}</span>
