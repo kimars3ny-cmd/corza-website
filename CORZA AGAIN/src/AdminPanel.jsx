@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
@@ -16,6 +17,7 @@ function AdminPanel() {
   const [tasks, setTasks] = useState([])
   const [taskSubmissions, setTaskSubmissions] = useState([])
   const [blatApplications, setBlatApplications] = useState([])
+  const [blatEnabled, setBlatEnabled] = useState(true)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -60,10 +62,8 @@ function AdminPanel() {
       if (!active) return
 
       const admin = !adminResult.error && adminResult.data === true
-      const levelOne =
-        !levelOneResult.error && levelOneResult.data === true
-      const owner =
-        !ownerResult.error && ownerResult.data === true
+      const levelOne = !levelOneResult.error && levelOneResult.data === true
+      const owner = !ownerResult.error && ownerResult.data === true
 
       setIsAdmin(admin)
       setIsLevelOne(admin && levelOne)
@@ -100,7 +100,8 @@ function AdminPanel() {
       adminsResult,
       tasksResult,
       submissionsResult,
-      blatResult
+      blatResult,
+      blatSettingsResult
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -125,23 +126,26 @@ function AdminPanel() {
         ? supabase.rpc('get_corza_admins')
         : Promise.resolve({ data: [], error: null }),
 
-      // Задания нужны всем администраторам для проверки заявок
       supabase
         .from('corza_tasks')
         .select('*')
         .order('created_at', { ascending: false }),
 
-      // Заявки на выполнение заданий
       supabase
         .from('corza_task_submissions')
         .select('*')
         .order('created_at', { ascending: false }),
 
-      // Заявки на День блата
       supabase
         .from('blat_applications')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('blat_settings')
+        .select('is_enabled')
+        .eq('id', true)
+        .single()
     ])
 
     const errors = []
@@ -196,6 +200,12 @@ function AdminPanel() {
       setBlatApplications(blatResult.data || [])
     }
 
+    if (blatSettingsResult.error) {
+      errors.push('Настройки Дня блата: ' + blatSettingsResult.error.message)
+    } else {
+      setBlatEnabled(blatSettingsResult.data.is_enabled)
+    }
+
     if (errors.length) {
       setMessage('Ошибки загрузки: ' + errors.join(' | '))
     }
@@ -208,6 +218,43 @@ function AdminPanel() {
       loadAdminData()
     }
   }, [isAdmin, isLevelOne, isOwner])
+
+  // Включение и выключение Дня блата
+  async function toggleBlatPanel() {
+    if (!isAdmin || !user) {
+      setMessage('У тебя нет прав для изменения этой настройки.')
+      return
+    }
+
+    const nextValue = !blatEnabled
+
+    setLoading(true)
+    setMessage(nextValue
+      ? 'Включаем День блата...'
+      : 'Выключаем День блата...')
+
+    const { error } = await supabase
+      .from('blat_settings')
+      .update({
+        is_enabled: nextValue,
+        updated_by: user.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', true)
+
+    if (error) {
+      setMessage('Ошибка изменения Дня блата: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    setBlatEnabled(nextValue)
+    setMessage(nextValue
+      ? 'День блата успешно включён!'
+      : 'День блата успешно выключен!')
+
+    setLoading(false)
+  }
 
   // Создание задания — только владелец
   async function createTask(event) {
@@ -680,6 +727,38 @@ function AdminPanel() {
               pendingBlatApplications.length}
           </strong>
         </div>
+      </div>
+
+      {/* Управление Днём блата */}
+      <div className="admin-block glass">
+        <div className="task-review-heading">
+          <div>
+            <span className="section-label">CORZA / BLAT DAY CONTROL</span>
+            <h3>Управление Днём блата</h3>
+            <p>
+              Здесь можно включить или выключить панель Дня блата
+              и приём новых заявок.
+            </p>
+          </div>
+
+          <div className="task-review-counter">
+            <strong>{blatEnabled ? 'ВКЛ' : 'ВЫКЛ'}</strong>
+            <span>{blatEnabled ? 'День блата активен' : 'День блата отключён'}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={blatEnabled ? 'task-review-reject' : 'task-review-approve'}
+          onClick={toggleBlatPanel}
+          disabled={loading}
+        >
+          {loading
+            ? 'Сохранение...'
+            : blatEnabled
+              ? 'Выключить День блата'
+              : 'Включить День блата'}
+        </button>
       </div>
 
       {/* Проверка выполненных заданий — все администраторы */}
