@@ -3723,3 +3723,70 @@ footer > span {
     left: 15px;
   }
 }
+
+
+/* ПЛАВАЮЩАЯ ПЛАШКА ДЕНЬ БЛАТА */
+
+.blat-floating-button {
+  position: fixed;
+  right: 25px;
+  bottom: 100px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 18px;
+  min-width: 210px;
+  color: white;
+  text-decoration: none;
+  background: linear-gradient(
+    120deg,
+    rgba(65, 82, 190, 0.94),
+    rgba(125, 65, 190, 0.94)
+  );
+  border: 1px solid rgba(180, 190, 255, 0.35);
+  border-radius: 17px;
+  box-shadow: 0 8px 35px rgba(80, 75, 220, 0.35);
+  backdrop-filter: blur(18px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.blat-floating-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 42px rgba(100, 90, 255, 0.5);
+}
+
+.blat-floating-icon {
+  font-size: 25px;
+  color: #d7d5ff;
+}
+
+.blat-floating-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.blat-floating-text strong {
+  font-size: 14px;
+}
+
+.blat-floating-text small {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+}
+
+.blat-floating-arrow {
+  margin-left: auto;
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+@media (max-width: 600px) {
+  .blat-floating-button {
+    right: 14px;
+    bottom: 90px;
+    min-width: auto;
+    padding: 12px 15px;
+  }
+}

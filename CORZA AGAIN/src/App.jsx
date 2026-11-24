@@ -9,6 +9,7 @@ import TasksPage from './TasksPage'
 import DiscordWidget from './DiscordWidget'
 import { supabase } from './supabase'
 import NetworkBackground from './NetworkBackground'
+import BlatPage from './BlatPage'
 
 const leaders = [
   {
@@ -88,6 +89,7 @@ const separatePages = [
   'transfers',
   'admin',
   'tasks',
+  'blat',
 ]
 
 function getPageFromHash() {
@@ -319,6 +321,20 @@ function App() {
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
+      {/* ПЛАВАЮЩАЯ ПЛАШКА «ДЕНЬ БЛАТА» */}
+      {page !== 'blat' && (
+        <a href="#blat" className="blat-floating-button">
+          <span className="blat-floating-icon">✦</span>
+
+          <span className="blat-floating-text">
+            <strong>День блата</strong>
+            <small>Подать заявку</small>
+          </span>
+
+          <span className="blat-floating-arrow">↗</span>
+        </a>
+      )}
+
       {/* ЛЕВАЯ КНОПКА АДМИНИСТРИРОВАНИЯ — ТОЛЬКО ДЛЯ АДМИНОВ */}
       {user && isAdmin && !adminCheckLoading && (
         <aside className="side-admin-panel">
@@ -377,6 +393,7 @@ function App() {
       </header>
 
       <main>
+        {/* ГЛАВНАЯ СТРАНИЦА */}
         {page === 'home' && (
           <>
             {/* ГЛАВНЫЙ ЭКРАН */}
@@ -701,6 +718,15 @@ function App() {
               </div>
             </section>
           </>
+        )}
+
+        {/* ДЕНЬ БЛАТА */}
+        {page === 'blat' && (
+          <BlatPage
+            onBack={() => {
+              window.location.hash = '#home'
+            }}
+          />
         )}
 
         {/* ЗАДАНИЯ */}
