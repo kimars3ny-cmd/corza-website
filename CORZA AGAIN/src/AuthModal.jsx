@@ -185,7 +185,7 @@ function AuthModal({ open, onClose }) {
     setEditProfile(true)
   }
 
-  // Сохраняем изменения профиля
+  // Сохраняем или создаём профиль
   async function saveProfile() {
     if (!editNickname.trim() || !editServer.trim()) {
       setMessage('Заполни игровой никнейм и сервер.')
@@ -203,20 +203,21 @@ function AuthModal({ open, onClose }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update({
-          game_nickname: editNickname.trim(),
-          server: editServer.trim(),
-        })
-        .eq('id', user.id)
-        .select('game_nickname, server, rank, position, joined_at')
-        .maybeSingle()
-
-      if (error) throw error
-
-      if (!data) {
-        throw new Error(
-          'Профиль не найден или изменение запрещено. Проверь наличие записи в profiles и права доступа.'
+        .upsert(
+          {
+            id: user.id,
+            game_nickname: editNickname.trim(),
+            server: editServer.trim(),
+          },
+          {
+            onConflict: 'id',
+          }
         )
+        .select('game_nickname, server, rank, position, joined_at')
+        .single()
+
+      if (error) {
+        throw error
       }
 
       setProfile(data)
@@ -224,7 +225,10 @@ function AuthModal({ open, onClose }) {
       setMessage('Данные профиля успешно обновлены!')
     } catch (error) {
       console.error('Ошибка сохранения профиля:', error)
-      setMessage('Ошибка сохранения: ' + error.message)
+
+      setMessage(
+        'Ошибка сохранения профиля: ' + error.message
+      )
     } finally {
       setSavingProfile(false)
     }
