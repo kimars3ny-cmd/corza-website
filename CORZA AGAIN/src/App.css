@@ -3570,3 +3570,156 @@ footer > span {
     width: 100%;
   }
 }
+
+/* ДЕНЬ БЛАТА */
+
+.blat-page {
+  min-height: 80vh;
+  padding: 110px 20px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.blat-back {
+  position: absolute;
+  top: 30px;
+  left: 25px;
+  padding: 12px 20px;
+  color: #dce8ff;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.blat-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 35px;
+  border-radius: 25px;
+  background: rgba(15, 19, 45, 0.82);
+  border: 1px solid rgba(120, 150, 255, 0.25);
+  box-shadow: 0 0 55px rgba(75, 85, 255, 0.16);
+  backdrop-filter: blur(20px);
+}
+
+.blat-icon {
+  font-size: 35px;
+  color: #9aabff;
+  text-align: center;
+}
+
+.blat-label {
+  display: block;
+  margin-top: 12px;
+  color: #8297ff;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.blat-card h1 {
+  margin: 12px 0;
+  color: white;
+  font-size: 32px;
+  text-align: center;
+}
+
+.blat-description {
+  color: #aeb8d5;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.blat-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blat-card form > label {
+  color: #dce4ff;
+  font-size: 14px;
+}
+
+.blat-card input:not([type="checkbox"]) {
+  width: 100%;
+  padding: 14px;
+  color: white;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(140,160,255,0.2);
+  border-radius: 12px;
+  outline: none;
+}
+
+.blat-card input:focus {
+  border-color: #8297ff;
+}
+
+.blat-telegram {
+  margin-top: 12px;
+  padding: 17px;
+  border-radius: 14px;
+  background: rgba(90,110,255,0.09);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blat-telegram > span {
+  color: white;
+  font-weight: 600;
+}
+
+.blat-telegram a {
+  color: #91a8ff;
+  text-decoration: none;
+}
+
+.blat-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #cbd5f5;
+  font-size: 13px;
+}
+
+.blat-checkbox input {
+  accent-color: #8297ff;
+}
+
+.blat-submit {
+  margin-top: 12px;
+  padding: 15px;
+  border: none;
+  border-radius: 13px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(110deg, #536bff, #9b5cff);
+}
+
+.blat-submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.blat-message {
+  color: #b9c8ff;
+  text-align: center;
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .blat-card {
+    padding: 25px 18px;
+  }
+
+  .blat-back {
+    top: 20px;
+    left: 15px;
+  }
+}
