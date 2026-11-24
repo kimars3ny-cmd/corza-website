@@ -133,6 +133,62 @@ function App() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState('')
 
+  // Состояние Дня блата: null означает, что настройка ещё загружается
+  const [blatEnabled, setBlatEnabled] = useState(null)
+
+  // Загрузка настройки Дня блата и отслеживание её изменений
+  useEffect(() => {
+    let active = true
+
+    async function loadBlatSetting() {
+      const { data, error } = await supabase
+        .from('blat_settings')
+        .select('is_enabled')
+        .eq('id', true)
+        .single()
+
+      if (!active) return
+
+      if (error) {
+        console.error('Ошибка загрузки настроек Дня блата:', error)
+        setBlatEnabled(false)
+        return
+      }
+
+      setBlatEnabled(data?.is_enabled === true)
+    }
+
+    loadBlatSetting()
+
+    // Получаем изменения переключателя из админ-панели без перезагрузки
+    const channel = supabase
+      .channel('blat-settings-live')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'blat_settings',
+        },
+        (payload) => {
+          if (!active) return
+
+          const enabled = payload.new?.is_enabled === true
+          setBlatEnabled(enabled)
+
+          if (!enabled && window.location.hash === '#blat') {
+            window.location.hash = '#home'
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      active = false
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   // Получение пользователя
   useEffect(() => {
     let active = true
@@ -274,6 +330,13 @@ function App() {
       const hash = window.location.hash.replace('#', '')
       const nextPage = getPageFromHash()
 
+      // Если День блата выключен, запрещаем открывать его страницу
+      if (nextPage === 'blat' && blatEnabled === false) {
+        window.location.hash = '#home'
+        setPage('home')
+        return
+      }
+
       setPage(nextPage)
 
       if (nextPage === 'home') {
@@ -299,7 +362,7 @@ function App() {
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
     }
-  }, [])
+  }, [blatEnabled])
 
   const accountName =
     profile?.game_nickname ||
@@ -322,7 +385,7 @@ function App() {
       <div className="stars stars-two" />
 
       {/* ПЛАВАЮЩАЯ ПЛАШКА «ДЕНЬ БЛАТА» */}
-      {page !== 'blat' && (
+      {blatEnabled === true && page !== 'blat' && (
         <a href="#blat" className="blat-floating-button">
           <span className="blat-floating-icon">✦</span>
 
@@ -721,7 +784,7 @@ function App() {
         )}
 
         {/* ДЕНЬ БЛАТА */}
-        {page === 'blat' && (
+        {page === 'blat' && blatEnabled === true && (
           <BlatPage
             onBack={() => {
               window.location.hash = '#home'
