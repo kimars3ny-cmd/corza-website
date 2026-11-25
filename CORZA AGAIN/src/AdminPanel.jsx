@@ -92,125 +92,133 @@ function AdminPanel() {
     setLoading(true)
     setMessage('')
 
-    const [
-      profilesResult,
-      requestsResult,
-      joinResult,
-      walletsResult,
-      adminsResult,
-      tasksResult,
-      submissionsResult,
-      blatResult,
-      blatSettingsResult
-    ] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, game_nickname, server, rank, position, joined_at, is_member')
-        .order('created_at', { ascending: false }),
+    try {
+      const [
+        profilesResult,
+        requestsResult,
+        joinResult,
+        walletsResult,
+        adminsResult,
+        tasksResult,
+        submissionsResult,
+        blatResult,
+        blatSettingsResult
+      ] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, game_nickname, server, rank, position, joined_at, is_member')
+          .order('created_at', { ascending: false }),
 
-      supabase
-        .from('promotion_requests')
-        .select('*')
-        .order('created_at', { ascending: false }),
+        supabase
+          .from('promotion_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
 
-      supabase
-        .from('join_requests')
-        .select('*')
-        .order('created_at', { ascending: false }),
+        supabase
+          .from('join_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
 
-      isLevelOne
-        ? supabase.from('corza_wallets').select('user_id, balance')
-        : Promise.resolve({ data: [], error: null }),
+        isLevelOne
+          ? supabase.from('corza_wallets').select('user_id, balance')
+          : Promise.resolve({ data: [], error: null }),
 
-      isLevelOne
-        ? supabase.rpc('get_corza_admins')
-        : Promise.resolve({ data: [], error: null }),
+        isLevelOne
+          ? supabase.rpc('get_corza_admins')
+          : Promise.resolve({ data: [], error: null }),
 
-      supabase
-        .from('corza_tasks')
-        .select('*')
-        .order('created_at', { ascending: false }),
+        supabase
+          .from('corza_tasks')
+          .select('*')
+          .order('created_at', { ascending: false }),
 
-      supabase
-        .from('corza_task_submissions')
-        .select('*')
-        .order('created_at', { ascending: false }),
+        supabase
+          .from('corza_task_submissions')
+          .select('*')
+          .order('created_at', { ascending: false }),
 
-      supabase
-        .from('blat_applications')
-        .select('*')
-        .order('created_at', { ascending: false }),
+        supabase
+          .from('blat_applications')
+          .select('*')
+          .order('created_at', { ascending: false }),
 
-      supabase
-        .from('blat_settings')
-        .select('is_enabled')
-        .eq('id', true)
-        .single()
-    ])
+        supabase
+          .from('blat_settings')
+          .select('is_enabled')
+          .eq('id', true)
+          .single()
+      ])
 
-    const errors = []
+      const errors = []
 
-    if (profilesResult.error) {
-      errors.push('Участники: ' + profilesResult.error.message)
-    } else {
-      setProfiles(profilesResult.data || [])
-    }
-
-    if (requestsResult.error) {
-      errors.push('Повышения: ' + requestsResult.error.message)
-    } else {
-      setRequests(requestsResult.data || [])
-    }
-
-    if (joinResult.error) {
-      errors.push('Вступление: ' + joinResult.error.message)
-    } else {
-      setJoinRequests(joinResult.data || [])
-    }
-
-    if (isLevelOne) {
-      if (walletsResult.error) {
-        errors.push('Кошельки CC: ' + walletsResult.error.message)
+      if (profilesResult.error) {
+        errors.push('Участники: ' + profilesResult.error.message)
       } else {
-        setWallets(walletsResult.data || [])
+        setProfiles(profilesResult.data || [])
       }
 
-      if (adminsResult.error) {
-        errors.push('Администраторы: ' + adminsResult.error.message)
+      if (requestsResult.error) {
+        errors.push('Повышения: ' + requestsResult.error.message)
       } else {
-        setAdmins(adminsResult.data || [])
+        setRequests(requestsResult.data || [])
       }
-    }
 
-    if (tasksResult.error) {
-      errors.push('Задания: ' + tasksResult.error.message)
-    } else {
-      setTasks(tasksResult.data || [])
-    }
+      if (joinResult.error) {
+        errors.push('Вступление: ' + joinResult.error.message)
+      } else {
+        setJoinRequests(joinResult.data || [])
+      }
 
-    if (submissionsResult.error) {
-      errors.push('Заявки на выполнение заданий: ' + submissionsResult.error.message)
-    } else {
-      setTaskSubmissions(submissionsResult.data || [])
-    }
+      if (isLevelOne) {
+        if (walletsResult.error) {
+          errors.push('Кошельки CC: ' + walletsResult.error.message)
+        } else {
+          setWallets(walletsResult.data || [])
+        }
 
-    if (blatResult.error) {
-      errors.push('Заявки на День блата: ' + blatResult.error.message)
-    } else {
-      setBlatApplications(blatResult.data || [])
-    }
+        if (adminsResult.error) {
+          errors.push('Администраторы: ' + adminsResult.error.message)
+        } else {
+          setAdmins(adminsResult.data || [])
+        }
+      }
 
-    if (blatSettingsResult.error) {
-      errors.push('Настройки Дня блата: ' + blatSettingsResult.error.message)
-    } else {
-      setBlatEnabled(blatSettingsResult.data.is_enabled)
-    }
+      if (tasksResult.error) {
+        errors.push('Задания: ' + tasksResult.error.message)
+      } else {
+        setTasks(tasksResult.data || [])
+      }
 
-    if (errors.length) {
-      setMessage('Ошибки загрузки: ' + errors.join(' | '))
-    }
+      if (submissionsResult.error) {
+        errors.push('Заявки на выполнение заданий: ' + submissionsResult.error.message)
+      } else {
+        setTaskSubmissions(submissionsResult.data || [])
+      }
 
-    setLoading(false)
+      if (blatResult.error) {
+        errors.push('Заявки на День блата: ' + blatResult.error.message)
+      } else {
+        setBlatApplications(blatResult.data || [])
+      }
+
+      if (blatSettingsResult.error) {
+        errors.push('Настройки Дня блата: ' + blatSettingsResult.error.message)
+      } else {
+        setBlatEnabled(blatSettingsResult.data.is_enabled)
+      }
+
+      if (errors.length) {
+        setMessage('Ошибки загрузки: ' + errors.join(' | '))
+      }
+
+      return errors
+    } catch (error) {
+      console.error('Ошибка загрузки панели:', error)
+      setMessage('Ошибка загрузки панели: ' + (error?.message || 'Неизвестная ошибка'))
+      return [error?.message || 'Неизвестная ошибка']
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -412,6 +420,11 @@ function AdminPanel() {
       return
     }
 
+    if (profile.id === user?.id) {
+      setMessage('Нельзя исключить самого себя.')
+      return
+    }
+
     const nickname = profile.game_nickname || 'Без никнейма'
 
     const confirmed = window.confirm(
@@ -422,20 +435,66 @@ function AdminPanel() {
     if (!confirmed) return
 
     setLoading(true)
-    setMessage('Исключаем участника...')
+    setMessage('Отправляем запрос на исключение...')
 
-    const { error } = await supabase.rpc('kick_corza_member', {
-      p_user_id: profile.id
-    })
+    try {
+      console.log('Попытка исключения участника:', {
+        userId: profile.id,
+        nickname
+      })
 
-    if (error) {
-      setMessage('Ошибка исключения: ' + error.message)
+      const { data, error } = await supabase.rpc(
+        'kick_corza_member',
+        {
+          p_user_id: profile.id
+        }
+      )
+
+      console.log('Ответ kick_corza_member:', { data, error })
+
+      if (error) {
+        console.error('Ошибка kick_corza_member:', error)
+        setMessage('Ошибка исключения: ' + error.message)
+        return
+      }
+
+      if (data !== true) {
+        console.error('Неожиданный ответ RPC:', data)
+        setMessage(
+          'Исключение не подтверждено. Ответ базы данных: ' +
+          String(data)
+        )
+        return
+      }
+
+      // Сразу убираем игрока из списка участников
+      setProfiles((previousProfiles) =>
+        previousProfiles.map((item) =>
+          item.id === profile.id
+            ? {
+                ...item,
+                is_member: false,
+                joined_at: null
+              }
+            : item
+        )
+      )
+
+      setMessage(`${nickname} исключён. Обновляем данные...`)
+
+      await loadAdminData()
+
+      setMessage(`${nickname} успешно исключён из семьи CORZA.`)
+    } catch (error) {
+      console.error('Ошибка при исключении участника:', error)
+
+      setMessage(
+        'Не удалось выполнить исключение: ' +
+        (error?.message || 'Неизвестная ошибка')
+      )
+    } finally {
       setLoading(false)
-      return
     }
-
-    await loadAdminData()
-    setMessage(`${nickname} исключён из семьи CORZA.`)
   }
 
   // Начисление и списание CC вручную
@@ -591,8 +650,15 @@ function AdminPanel() {
 
   // Обработка заявки на вступление
   async function reviewJoinRequest(requestId, status) {
+    const request = joinRequests.find((item) => item.id === requestId)
+
+    if (!request) {
+      setMessage('Заявка не найдена.')
+      return
+    }
+
     setLoading(true)
-    setMessage('')
+    setMessage('Обрабатываем заявку на вступление...')
 
     const { error } = await supabase
       .from('join_requests')
@@ -609,9 +675,42 @@ function AdminPanel() {
       return
     }
 
+    // При одобрении добавляем игрока в семью
+    if (status === 'approved') {
+      if (!request.user_id) {
+        setMessage(
+          'Заявка одобрена, но у неё отсутствует user_id. ' +
+          'Не удалось автоматически добавить игрока в семью.'
+        )
+        setLoading(false)
+        await loadAdminData()
+        return
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          is_member: true,
+          position: 'Участник',
+          joined_at: new Date().toISOString()
+        })
+        .eq('id', request.user_id)
+
+      if (profileError) {
+        setMessage(
+          'Заявка одобрена, но не удалось добавить игрока в семью: ' +
+          profileError.message
+        )
+        setLoading(false)
+        await loadAdminData()
+        return
+      }
+    }
+
     await loadAdminData()
+
     setMessage(status === 'approved'
-      ? 'Заявка на вступление одобрена!'
+      ? 'Заявка на вступление одобрена! Игрок добавлен в семью CORZA.'
       : 'Заявка на вступление отклонена.')
   }
 
@@ -699,6 +798,10 @@ function AdminPanel() {
     (profile) => !admins.some((admin) => admin.user_id === profile.id)
   )
 
+  const familyMembers = profiles.filter(
+    (profile) => profile.is_member === true
+  )
+
   function getAdminRole(level) {
     switch (Number(level)) {
       case 0: return 'Владелец'
@@ -741,12 +844,16 @@ function AdminPanel() {
         </button>
       </div>
 
-      {message && <div className="admin-message">{message}</div>}
+      {message && (
+        <div className="admin-message">
+          {message}
+        </div>
+      )}
 
       <div className="admin-stats">
         <div className="admin-stat glass">
           <span>Участников</span>
-          <strong>{profiles.filter((profile) => profile.is_member).length}</strong>
+          <strong>{familyMembers.length}</strong>
         </div>
 
         <div className="admin-stat glass">
@@ -781,7 +888,9 @@ function AdminPanel() {
 
           <div className="task-review-counter">
             <strong>{blatEnabled ? 'ВКЛ' : 'ВЫКЛ'}</strong>
-            <span>{blatEnabled ? 'День блата активен' : 'День блата отключён'}</span>
+            <span>
+              {blatEnabled ? 'День блата активен' : 'День блата отключён'}
+            </span>
           </div>
         </div>
 
@@ -799,7 +908,7 @@ function AdminPanel() {
         </button>
       </div>
 
-      {/* Проверка выполненных заданий — все администраторы */}
+      {/* Проверка выполненных заданий */}
       <div className="admin-block glass task-review-block">
         <div className="task-review-heading">
           <div>
@@ -1391,33 +1500,35 @@ function AdminPanel() {
       <div className="admin-block glass">
         <h3>Участники CORZA</h3>
 
-        {profiles.length === 0 ? (
-          <p className="admin-empty">Участники не найдены.</p>
+        {familyMembers.length === 0 ? (
+          <p className="admin-empty">Участников семьи пока нет.</p>
         ) : (
           <div className="admin-list">
-            {profiles.map((profile) => (
+            {familyMembers.map((profile) => (
               <article className="admin-member" key={profile.id}>
                 <div>
                   <strong>{profile.game_nickname || 'Без никнейма'}</strong>
                   <span>{profile.server || 'Сервер не указан'}</span>
-                  <span>
-                    {profile.is_member ? 'Участник семьи' : 'Не состоит в семье'}
-                  </span>
+                  <span>Участник семьи</span>
                 </div>
 
                 <div className="admin-member-rank">
                   <strong>{profile.rank || 'Новичок'}</strong>
                   <span>{profile.position || 'Участник'}</span>
 
-                  {isLevelOne && profile.is_member && (
+                  {isLevelOne && (
                     <button
                       type="button"
                       className="task-review-reject"
                       disabled={loading || profile.id === user?.id}
                       onClick={() => kickMember(profile)}
                     >
-                      Исключить из семьи
+                      {loading ? 'Обработка...' : 'Исключить из семьи'}
                     </button>
+                  )}
+
+                  {profile.id === user?.id && (
+                    <span>Это твой аккаунт</span>
                   )}
                 </div>
               </article>
