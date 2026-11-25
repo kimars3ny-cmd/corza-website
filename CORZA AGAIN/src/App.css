@@ -3866,3 +3866,26 @@ footer > span {
   inset: 0 !important;
   z-index: 10000 !important;
 }
+
+/* =========================================
+   ОБЩЕЕ СМЕЩЕНИЕ ИНТЕРФЕЙСА ВНИЗ
+   ========================================= */
+
+.navbar {
+  top: 20px;
+}
+
+.app > main {
+  padding-top: 18px;
+}
+
+/* На мобильных устройствах */
+@media (max-width: 700px) {
+  .navbar {
+    top: 10px;
+  }
+
+  .app > main {
+    padding-top: 12px;
+  }
+}
