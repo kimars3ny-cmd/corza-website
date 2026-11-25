@@ -17,18 +17,19 @@ function AuthModal({
   const [profileLoading, setProfileLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // Редактирование профиля
   const [editProfile, setEditProfile] = useState(false)
   const [editNickname, setEditNickname] = useState('')
   const [editServer, setEditServer] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
 
-  // Corza Coin
   const [coinBalance, setCoinBalance] = useState(null)
   const [coinTransactions, setCoinTransactions] = useState([])
   const [showAllTransactions, setShowAllTransactions] = useState(false)
 
-  // Проверяем авторизацию
+  // =========================================
+  // ПРОВЕРКА АВТОРИЗАЦИИ
+  // =========================================
+
   useEffect(() => {
     let mounted = true
 
@@ -59,7 +60,10 @@ function AuthModal({
     }
   }, [])
 
-  // Загружаем профиль и проверяем администратора
+  // =========================================
+  // ЗАГРУЗКА ПРОФИЛЯ И ПРОВЕРКА АДМИНА
+  // =========================================
+
   useEffect(() => {
     let active = true
 
@@ -88,9 +92,8 @@ function AuthModal({
         setProfile(data)
       }
 
-      const { data: adminData, error: adminError } = await supabase.rpc(
-        'is_corza_admin'
-      )
+      const { data: adminData, error: adminError } =
+        await supabase.rpc('is_corza_admin')
 
       if (!active) return
 
@@ -105,7 +108,10 @@ function AuthModal({
     }
   }, [user])
 
-  // Автоматически открываем редактирование, если заполнение обязательно
+  // =========================================
+  // ОБЯЗАТЕЛЬНОЕ ЗАПОЛНЕНИЕ ПРОФИЛЯ
+  // =========================================
+
   useEffect(() => {
     if (!open || !forceProfileEdit || !user || profileLoading) return
 
@@ -115,7 +121,10 @@ function AuthModal({
     setEditProfile(true)
   }, [open, forceProfileEdit, user, profileLoading])
 
-  // Загружаем кошелёк и историю Corza Coin
+  // =========================================
+  // ЗАГРУЗКА CORZA COIN
+  // =========================================
+
   useEffect(() => {
     let active = true
 
@@ -147,7 +156,9 @@ function AuthModal({
       if (!active) return
 
       if (walletResult.error) {
-        setMessage('Ошибка загрузки кошелька: ' + walletResult.error.message)
+        setMessage(
+          'Ошибка загрузки кошелька: ' + walletResult.error.message
+        )
       } else {
         setCoinBalance(Number(walletResult.data?.balance ?? 0))
       }
@@ -168,7 +179,10 @@ function AuthModal({
     }
   }, [user])
 
-  // Вход через Google или Discord
+  // =========================================
+  // ВХОД ЧЕРЕЗ GOOGLE И DISCORD
+  // =========================================
+
   async function handleOAuthLogin(provider) {
     setLoading(true)
     setLoadingProvider(provider)
@@ -194,7 +208,10 @@ function AuthModal({
     }
   }
 
-  // Открываем редактирование профиля
+  // =========================================
+  // РЕДАКТИРОВАНИЕ ПРОФИЛЯ
+  // =========================================
+
   function openProfileEdit() {
     setEditNickname(profile?.game_nickname || '')
     setEditServer(profile?.server || '')
@@ -202,7 +219,6 @@ function AuthModal({
     setEditProfile(true)
   }
 
-  // Сохраняем или создаём профиль
   async function saveProfile() {
     if (!editNickname.trim() || !editServer.trim()) {
       setMessage('Заполни игровой никнейм и сервер.')
@@ -233,29 +249,25 @@ function AuthModal({
         .select('game_nickname, server, rank, position, joined_at')
         .single()
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       setProfile(data)
       setEditProfile(false)
       setMessage('Данные профиля успешно обновлены!')
 
-      if (onProfileSaved) {
-        onProfileSaved(data)
-      }
+      if (onProfileSaved) onProfileSaved(data)
     } catch (error) {
       console.error('Ошибка сохранения профиля:', error)
-
-      setMessage(
-        'Ошибка сохранения профиля: ' + error.message
-      )
+      setMessage('Ошибка сохранения профиля: ' + error.message)
     } finally {
       setSavingProfile(false)
     }
   }
 
-  // Выход из аккаунта
+  // =========================================
+  // ВЫХОД ИЗ АККАУНТА
+  // =========================================
+
   async function handleLogout() {
     setLoading(true)
     setMessage('')
@@ -278,7 +290,10 @@ function AuthModal({
     setLoading(false)
   }
 
-  // Форматирование даты
+  // =========================================
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // =========================================
+
   function formatDate(date) {
     if (!date) return 'Не указана'
 
@@ -289,7 +304,6 @@ function AuthModal({
     })
   }
 
-  // Форматирование даты и времени операции
   function formatDateTime(date) {
     if (!date) return ''
 
@@ -302,7 +316,6 @@ function AuthModal({
     })
   }
 
-  // Названия операций
   function getOperationName(operation) {
     const names = {
       admin_credit: 'Начисление администрацией',
@@ -344,13 +357,17 @@ function AuthModal({
     ? coinTransactions
     : coinTransactions.slice(0, 1)
 
+  // =========================================
+  // ИНТЕРФЕЙС
+  // =========================================
+
   return (
     <div
       className="auth-overlay"
       onClick={forceProfileEdit ? undefined : onClose}
     >
       <div
-        className="auth-modal glass"
+        className="auth-modal glass corza-profile-modal"
         onClick={(event) => event.stopPropagation()}
       >
         {(!forceProfileEdit || !user) && (
@@ -366,12 +383,10 @@ function AuthModal({
 
         <div className="auth-logo">C</div>
 
-        <span className="section-label">
-          CORZA FAMILY PORTAL
-        </span>
+        <span className="section-label">CORZA FAMILY PORTAL</span>
 
         {user ? (
-          <div className="auth-content">
+          <div className="auth-content corza-profile-content">
             {profileLoading ? (
               <>
                 <h2>Загрузка аккаунта</h2>
@@ -381,165 +396,139 @@ function AuthModal({
               </>
             ) : (
               <>
-                <h2>{forceProfileEdit ? 'Заполни профиль' : 'Мой аккаунт'}</h2>
+                {/* ШАПКА ПРОФИЛЯ */}
 
-                <p className="auth-description">
-                  {forceProfileEdit
-                    ? 'Чтобы продолжить пользоваться сайтом CORZA, укажи игровой никнейм и сервер Majestic RP.'
-                    : 'Добро пожаловать в государственную семью CORZA.'}
-                </p>
-
-                <div className="profile-avatar-area">
-                  <div className="profile-avatar-wrapper">
-                    <div className="profile-avatar">
-                      {accountInitial}
-                    </div>
+                <div className="corza-profile-header">
+                  <div className="corza-profile-avatar">
+                    {accountInitial}
                   </div>
+
+                  <div className="corza-profile-heading">
+                    <h2>{accountName}</h2>
+
+                    <span>
+                      {profile?.server
+                        ? `Majestic RP · Сервер ${profile.server}`
+                        : 'Игрок CORZA'}
+                    </span>
+
+                    {isAdmin && (
+                      <div className="admin-profile-badge">
+                        <span className="admin-profile-icon">♛</span>
+                        АДМИНИСТРАТОР
+                      </div>
+                    )}
+                  </div>
+
+                  {!editProfile && (
+                    <button
+                      className="corza-edit-icon"
+                      type="button"
+                      onClick={openProfileEdit}
+                      title="Изменить профиль"
+                    >
+                      ✎
+                    </button>
+                  )}
                 </div>
 
-                {isAdmin && (
-                  <div className="admin-profile-badge">
-                    <span className="admin-profile-icon">♛</span>
-                    АДМИНИСТРАТОР
-                  </div>
-                )}
+                {/* РЕДАКТИРОВАНИЕ */}
 
-                <div className="profile-section">
-                  <h3>Информация об аккаунте</h3>
+                {editProfile && (
+                  <div className="corza-edit-panel">
+                    <h3>
+                      {forceProfileEdit
+                        ? 'Заполнение профиля'
+                        : 'Редактирование профиля'}
+                    </h3>
 
-                  {!editProfile ? (
+                    <label>Игровой никнейм</label>
+
+                    <input
+                      type="text"
+                      value={editNickname}
+                      onChange={(event) =>
+                        setEditNickname(event.target.value)
+                      }
+                      placeholder="Например: Atlantica_Corza"
+                      maxLength={40}
+                      required
+                    />
+
+                    <label>Сервер Majestic RP</label>
+
+                    <input
+                      type="text"
+                      value={editServer}
+                      onChange={(event) =>
+                        setEditServer(event.target.value)
+                      }
+                      placeholder="Например: 1"
+                      maxLength={50}
+                      required
+                    />
+
                     <button
                       className="auth-submit"
                       type="button"
-                      onClick={openProfileEdit}
-                      style={{ marginTop: '15px', marginBottom: '15px' }}
+                      onClick={saveProfile}
+                      disabled={savingProfile}
                     >
-                      ✏️ Изменить данные профиля
+                      {savingProfile
+                        ? 'Сохраняем...'
+                        : 'Сохранить изменения'}
                     </button>
-                  ) : (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gap: '14px',
-                        marginTop: '15px',
-                        marginBottom: '20px',
-                        padding: '18px',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(150, 110, 255, 0.35)',
-                        background: 'rgba(100, 80, 180, 0.10)',
-                      }}
-                    >
-                      <h3 style={{ margin: 0 }}>
-                        {forceProfileEdit ? 'Обязательное заполнение профиля' : 'Редактирование профиля'}
-                      </h3>
 
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            marginBottom: '8px',
-                            fontSize: '13px',
-                          }}
-                        >
-                          Игровой никнейм
-                        </label>
-
-                        <input
-                          type="text"
-                          value={editNickname}
-                          onChange={(event) =>
-                            setEditNickname(event.target.value)
-                          }
-                          placeholder="Например: Atlantica_Corza"
-                          maxLength={40}
-                          required
-                          style={{
-                            width: '100%',
-                            padding: '13px',
-                            borderRadius: '10px',
-                            border: '1px solid rgba(160, 140, 220, 0.3)',
-                            background: 'rgba(10, 10, 30, 0.65)',
-                            color: '#ffffff',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            marginBottom: '8px',
-                            fontSize: '13px',
-                          }}
-                        >
-                          Сервер Majestic RP
-                        </label>
-
-                        <input
-                          type="text"
-                          value={editServer}
-                          onChange={(event) =>
-                            setEditServer(event.target.value)
-                          }
-                          placeholder="Например: 1"
-                          maxLength={50}
-                          required
-                          style={{
-                            width: '100%',
-                            padding: '13px',
-                            borderRadius: '10px',
-                            border: '1px solid rgba(160, 140, 220, 0.3)',
-                            background: 'rgba(10, 10, 30, 0.65)',
-                            color: '#ffffff',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-
+                    {!forceProfileEdit && (
                       <button
-                        className="auth-submit"
+                        className="auth-submit auth-logout"
                         type="button"
-                        onClick={saveProfile}
+                        onClick={() => {
+                          setEditProfile(false)
+                          setMessage('')
+                        }}
                         disabled={savingProfile}
                       >
-                        {savingProfile
-                          ? 'Сохраняем...'
-                          : '💾 Сохранить изменения'}
+                        Отмена
                       </button>
+                    )}
+                  </div>
+                )}
 
-                      {!forceProfileEdit && (
-                        <button
-                          className="auth-submit auth-logout"
-                          type="button"
-                          onClick={() => {
-                            setEditProfile(false)
-                            setMessage('')
-                          }}
-                          disabled={savingProfile}
-                        >
-                          Отмена
-                        </button>
-                      )}
-                    </div>
-                  )}
+                {/* ИНФОРМАЦИЯ О ПРОФИЛЕ */}
 
-                  <div className="auth-user">
-                    <span>Игровой никнейм</span>
-                    <strong>
-                      {profile?.game_nickname || 'Не указан'}
-                    </strong>
+                <div className="corza-profile-grid">
+                  <div className="corza-info-card">
+                    <span>ИГРОВОЙ РАНГ</span>
+                    <strong>{profile?.rank || 'Новичок'}</strong>
                   </div>
 
-                  <div className="auth-user">
+                  <div className="corza-info-card">
+                    <span>ДОЛЖНОСТЬ</span>
+                    <strong>{profile?.position || 'Участник'}</strong>
+                  </div>
+
+                  <div className="corza-info-card">
+                    <span>СЕРВЕР</span>
+                    <strong>{profile?.server || 'Не указан'}</strong>
+                  </div>
+
+                  <div className="corza-info-card">
+                    <span>В СЕМЬЕ С</span>
+                    <strong>{formatDate(profile?.joined_at)}</strong>
+                  </div>
+                </div>
+
+                {/* ДАННЫЕ АККАУНТА */}
+
+                <div className="corza-account-details">
+                  <div>
                     <span>Электронная почта</span>
                     <strong>{user.email || 'Не указана'}</strong>
                   </div>
 
-                  <div className="auth-user">
-                    <span>Способ входа</span>
+                  <div>
+                    <span>Способ авторизации</span>
                     <strong>
                       {authProvider === 'discord'
                         ? 'Discord'
@@ -550,96 +539,40 @@ function AuthModal({
                   </div>
 
                   {authProvider === 'discord' && (
-                    <div className="auth-user">
+                    <div>
                       <span>Discord</span>
                       <strong>{discordName || 'Подключён'}</strong>
                     </div>
                   )}
+                </div>
 
-                  <div className="auth-user">
-                    <span>Сервер Majestic RP</span>
-                    <strong>{profile?.server || 'Не указан'}</strong>
+                {/* CORZA COIN */}
+
+                <div className="corza-wallet-card">
+                  <div className="corza-wallet-top">
+                    <div>
+                      <span>ТВОЙ БАЛАНС</span>
+
+                      <strong>
+                        {coinBalance === null
+                          ? 'Загрузка...'
+                          : `${coinBalance.toLocaleString('ru-RU')} CC`}
+                      </strong>
+                    </div>
+
+                    <div className="corza-wallet-icon">◈</div>
                   </div>
 
-                  <div className="auth-user">
-                    <span>Текущий ранг</span>
-                    <strong>{profile?.rank || 'Новичок'}</strong>
-                  </div>
-
-                  <div className="auth-user">
-                    <span>Должность</span>
-                    <strong>{profile?.position || 'Участник'}</strong>
-                  </div>
-
-                  <div className="auth-user">
-                    <span>Дата вступления</span>
-                    <strong>{formatDate(profile?.joined_at)}</strong>
+                  <div className="corza-wallet-bottom">
+                    <span>CORZA COIN</span>
+                    <span>ЛИЧНЫЙ КОШЕЛЁК</span>
                   </div>
                 </div>
 
-                {/* Кошелёк Corza Coin */}
-                <div className="profile-section">
-                  <h3>Мой кошелёк</h3>
+                {/* ИСТОРИЯ ОПЕРАЦИЙ */}
 
-                  <div
-                    style={{
-                      padding: '20px',
-                      marginTop: '12px',
-                      borderRadius: '16px',
-                      border: '1px solid rgba(150, 110, 255, 0.35)',
-                      background:
-                        'linear-gradient(135deg, rgba(100, 70, 200, 0.2), rgba(40, 150, 255, 0.12))',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        opacity: 0.75,
-                        marginBottom: '6px',
-                      }}
-                    >
-                      ТВОЙ БАЛАНС
-                    </span>
-
-                    <strong
-                      style={{
-                        display: 'block',
-                        fontSize: '32px',
-                        fontWeight: 900,
-                        color: '#b69aff',
-                      }}
-                    >
-                      {coinBalance === null
-                        ? 'Загрузка...'
-                        : `${coinBalance.toLocaleString('ru-RU')} CC`}
-                    </strong>
-
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: '11px',
-                        opacity: 0.65,
-                        marginTop: '6px',
-                      }}
-                    >
-                      CORZA COIN
-                    </span>
-                  </div>
-                </div>
-
-                {/* Компактная история операций */}
-                <div className="profile-section">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '10px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                <div className="corza-history">
+                  <div className="corza-history-heading">
                     <h3>История операций</h3>
 
                     {coinTransactions.length > 1 && (
@@ -648,21 +581,10 @@ function AuthModal({
                         onClick={() =>
                           setShowAllTransactions((previous) => !previous)
                         }
-                        style={{
-                          padding: '7px 11px',
-                          borderRadius: '9px',
-                          border: '1px solid rgba(150, 110, 255, 0.35)',
-                          background: 'rgba(120, 100, 200, 0.12)',
-                          color: '#c8b5ff',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: '0.2s',
-                        }}
                       >
                         {showAllTransactions
-                          ? 'Свернуть историю ↑'
-                          : 'Показать всю историю ↓'}
+                          ? 'Свернуть ↑'
+                          : 'Все операции ↓'}
                       </button>
                     )}
                   </div>
@@ -673,19 +595,15 @@ function AuthModal({
                     </p>
                   ) : coinTransactions.length === 0 ? (
                     <p className="auth-description">
-                      Операций пока нет. Здесь будут отображаться
-                      все начисления и списания CC.
+                      Операций пока нет.
                     </p>
                   ) : (
                     <div
-                      style={{
-                        display: 'grid',
-                        gap: '8px',
-                        marginTop: '12px',
-                        maxHeight: showAllTransactions ? '190px' : 'none',
-                        overflowY: showAllTransactions ? 'auto' : 'visible',
-                        paddingRight: showAllTransactions ? '5px' : '0',
-                      }}
+                      className={
+                        showAllTransactions
+                          ? 'corza-history-list expanded'
+                          : 'corza-history-list'
+                      }
                     >
                       {visibleTransactions.map((transaction) => {
                         const amount = Number(transaction.amount)
@@ -694,103 +612,53 @@ function AuthModal({
                         return (
                           <div
                             key={transaction.id}
-                            style={{
-                              padding: '11px 13px',
-                              borderRadius: '11px',
-                              border: '1px solid rgba(160, 140, 220, 0.18)',
-                              background: 'rgba(120, 100, 180, 0.07)',
-                            }}
+                            className="corza-transaction"
                           >
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '10px',
-                              }}
-                            >
-                              <strong
-                                style={{
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {getOperationName(transaction.operation)}
-                              </strong>
+                            <div className="corza-transaction-main">
+                              <div className="corza-transaction-info">
+                                <strong>
+                                  {getOperationName(transaction.operation)}
+                                </strong>
+
+                                <span>
+                                  {transaction.description ||
+                                    'Без описания'}
+                                </span>
+                              </div>
 
                               <strong
-                                style={{
-                                  color: isCredit ? '#78e6b0' : '#ff8585',
-                                  whiteSpace: 'nowrap',
-                                  fontSize: '13px',
-                                  fontWeight: 800,
-                                }}
+                                className={
+                                  isCredit
+                                    ? 'corza-transaction-credit'
+                                    : 'corza-transaction-debit'
+                                }
                               >
                                 {isCredit ? '+' : ''}
                                 {amount.toLocaleString('ru-RU')} CC
                               </strong>
                             </div>
 
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginTop: '6px',
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: '11px',
-                                  opacity: 0.65,
-                                  minWidth: 0,
-                                  overflowWrap: 'anywhere',
-                                }}
-                              >
-                                {transaction.description || 'Без описания'}
-                              </span>
-
-                              <small
-                                style={{
-                                  fontSize: '10px',
-                                  opacity: 0.45,
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {formatDateTime(transaction.created_at)}
-                              </small>
-                            </div>
+                            <small>
+                              {formatDateTime(transaction.created_at)}
+                            </small>
                           </div>
                         )
                       })}
                     </div>
                   )}
-
-                  {showAllTransactions && coinTransactions.length > 1 && (
-                    <p
-                      style={{
-                        fontSize: '10px',
-                        opacity: 0.45,
-                        textAlign: 'center',
-                        marginTop: '7px',
-                      }}
-                    >
-                      Прокручивай список, чтобы посмотреть остальные операции
-                    </p>
-                  )}
                 </div>
 
+                {/* СООБЩЕНИЯ */}
+
                 {message && (
-                  <div className="auth-message">
-                    {message}
-                  </div>
+                  <div className="auth-message">{message}</div>
                 )}
+
+                {/* ВЫХОД */}
 
                 {!forceProfileEdit && (
                   <button
-                    className="auth-submit auth-logout"
+                    className="auth-submit auth-logout corza-logout"
                     onClick={handleLogout}
                     type="button"
                     disabled={loading}
@@ -802,6 +670,8 @@ function AuthModal({
             )}
           </div>
         ) : (
+          /* АВТОРИЗАЦИЯ */
+
           <div className="auth-content">
             <h2>Добро пожаловать</h2>
 
@@ -810,71 +680,40 @@ function AuthModal({
               Выбери удобный способ авторизации.
             </p>
 
-            <div
-              style={{
-                display: 'grid',
-                gap: '14px',
-                marginTop: '25px',
-              }}
-            >
+            <div className="corza-login-buttons">
               <button
-                className="auth-submit"
+                className="auth-submit corza-google-button"
                 type="button"
                 onClick={() => handleOAuthLogin('google')}
                 disabled={loading}
-                style={{
-                  background: '#ffffff',
-                  color: '#222222',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
               >
-                <span style={{ fontSize: '20px' }}>G</span>
+                <span>G</span>
+
                 {loading && loadingProvider === 'google'
                   ? 'Подключаем Google...'
                   : 'Продолжить с Google'}
               </button>
 
               <button
-                className="auth-submit"
+                className="auth-submit corza-discord-button"
                 type="button"
                 onClick={() => handleOAuthLogin('discord')}
                 disabled={loading}
-                style={{
-                  background: 'linear-gradient(100deg, #5865F2, #8065FF)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
               >
-                <span style={{ fontSize: '20px' }}>🎮</span>
+                <span>🎮</span>
+
                 {loading && loadingProvider === 'discord'
                   ? 'Подключаем Discord...'
                   : 'Продолжить с Discord'}
               </button>
             </div>
 
-            <p
-              style={{
-                textAlign: 'center',
-                fontSize: '12px',
-                opacity: 0.55,
-                marginTop: '22px',
-                lineHeight: 1.6,
-              }}
-            >
+            <p className="corza-login-note">
               Авторизуясь, ты получаешь доступ к личному кабинету CORZA.
             </p>
 
             {message && (
-              <div className="auth-message">
-                {message}
-              </div>
+              <div className="auth-message">{message}</div>
             )}
           </div>
         )}

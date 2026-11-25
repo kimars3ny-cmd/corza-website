@@ -3889,3 +3889,434 @@ footer > span {
     padding-top: 12px;
   }
 }
+
+
+/* =========================================
+   НОВЫЙ КОМПАКТНЫЙ ПРОФИЛЬ CORZA
+   ========================================= */
+
+.corza-profile-modal {
+  width: min(550px, calc(100vw - 28px)) !important;
+  max-height: min(88vh, 850px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 130, 255, 0.45) transparent;
+}
+
+.corza-profile-modal::-webkit-scrollbar {
+  width: 5px;
+}
+
+.corza-profile-modal::-webkit-scrollbar-thumb {
+  background: rgba(160, 130, 255, 0.45);
+  border-radius: 10px;
+}
+
+.corza-profile-content {
+  width: 100%;
+  gap: 0;
+}
+
+.corza-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 16px;
+  margin: 20px 0;
+  border-radius: 18px;
+  border: 1px solid rgba(155, 125, 255, 0.25);
+  background: linear-gradient(
+    120deg,
+    rgba(110, 80, 200, 0.17),
+    rgba(50, 130, 220, 0.08)
+  );
+}
+
+.corza-profile-avatar {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
+  font-size: 27px;
+  font-weight: 900;
+  color: #e2d5ff;
+  background: linear-gradient(135deg, #6844bd, #318acb);
+  box-shadow: 0 0 25px rgba(130, 90, 255, 0.25);
+}
+
+.corza-profile-heading {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.corza-profile-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.corza-profile-heading > span {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.corza-edit-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid rgba(170, 145, 255, 0.35);
+  background: rgba(140, 110, 230, 0.13);
+  color: #c8b3ff;
+  font-size: 21px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.corza-edit-icon:hover {
+  background: rgba(140, 110, 230, 0.28);
+  transform: translateY(-2px);
+}
+
+.corza-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.corza-info-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid rgba(150, 125, 230, 0.2);
+  border-radius: 13px;
+  background: rgba(120, 95, 190, 0.09);
+}
+
+.corza-info-card span,
+.corza-account-details span {
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  opacity: 0.55;
+  font-weight: 700;
+}
+
+.corza-info-card strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.corza-account-details {
+  display: grid;
+  gap: 0;
+  padding: 4px 14px;
+  border: 1px solid rgba(150, 125, 230, 0.17);
+  border-radius: 13px;
+  background: rgba(120, 95, 190, 0.045);
+}
+
+.corza-account-details > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(170, 150, 230, 0.10);
+}
+
+.corza-account-details > div:last-child {
+  border-bottom: none;
+}
+
+.corza-account-details strong {
+  font-size: 11px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.corza-wallet-card {
+  margin-top: 15px;
+  padding: 18px;
+  border-radius: 17px;
+  border: 1px solid rgba(170, 135, 255, 0.4);
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(100, 180, 255, 0.18),
+      transparent 45%
+    ),
+    linear-gradient(
+      120deg,
+      rgba(100, 65, 190, 0.25),
+      rgba(45, 115, 190, 0.15)
+    );
+  box-shadow: inset 0 0 25px rgba(120, 100, 255, 0.05);
+}
+
+.corza-wallet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.corza-wallet-top > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.corza-wallet-top span {
+  font-size: 10px;
+  letter-spacing: 1px;
+  opacity: 0.65;
+}
+
+.corza-wallet-top strong {
+  font-size: 29px;
+  font-weight: 900;
+  color: #c4a5ff;
+  overflow-wrap: anywhere;
+}
+
+.corza-wallet-icon {
+  font-size: 38px;
+  color: #b99bff;
+  opacity: 0.8;
+}
+
+.corza-wallet-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(190, 165, 255, 0.18);
+}
+
+.corza-wallet-bottom span {
+  font-size: 9px;
+  letter-spacing: 1px;
+  opacity: 0.5;
+}
+
+.corza-history {
+  margin-top: 20px;
+}
+
+.corza-history-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.corza-history-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.corza-history-heading button {
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(155, 125, 255, 0.3);
+  background: rgba(120, 90, 210, 0.12);
+  color: #c6adff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.corza-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.corza-history-list.expanded {
+  max-height: 190px;
+  overflow-y: auto;
+  padding-right: 5px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 125, 255, 0.4) transparent;
+}
+
+.corza-history-list.expanded::-webkit-scrollbar {
+  width: 4px;
+}
+
+.corza-history-list.expanded::-webkit-scrollbar-thumb {
+  background: rgba(155, 125, 255, 0.4);
+  border-radius: 10px;
+}
+
+.corza-transaction {
+  padding: 11px 12px;
+  border: 1px solid rgba(150, 125, 230, 0.16);
+  border-radius: 11px;
+  background: rgba(120, 95, 190, 0.07);
+}
+
+.corza-transaction-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.corza-transaction-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.corza-transaction-info strong {
+  font-size: 11px;
+}
+
+.corza-transaction-info span {
+  font-size: 10px;
+  opacity: 0.55;
+  overflow-wrap: anywhere;
+}
+
+.corza-transaction-credit,
+.corza-transaction-debit {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.corza-transaction-credit {
+  color: #78e6b0;
+}
+
+.corza-transaction-debit {
+  color: #ff8585;
+}
+
+.corza-transaction small {
+  display: block;
+  margin-top: 8px;
+  font-size: 9px;
+  opacity: 0.4;
+}
+
+.corza-edit-panel {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 15px;
+  border-radius: 15px;
+  border: 1px solid rgba(150, 110, 255, 0.35);
+  background: rgba(100, 80, 180, 0.10);
+}
+
+.corza-edit-panel h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.corza-edit-panel label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.corza-edit-panel input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(160, 140, 220, 0.3);
+  background: rgba(10, 10, 30, 0.65);
+  color: #fff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.corza-edit-panel input:focus {
+  border-color: rgba(170, 140, 255, 0.8);
+  box-shadow: 0 0 0 3px rgba(140, 110, 255, 0.10);
+}
+
+.corza-logout {
+  margin-top: 17px;
+}
+
+.corza-login-buttons {
+  display: grid;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.corza-google-button,
+.corza-discord-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.corza-google-button {
+  background: #fff;
+  color: #222;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.corza-discord-button {
+  background: linear-gradient(100deg, #5865F2, #8065FF);
+  color: #fff;
+}
+
+.corza-login-buttons button span {
+  font-size: 20px;
+}
+
+.corza-login-note {
+  text-align: center;
+  font-size: 11px;
+  opacity: 0.5;
+  margin-top: 20px;
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .corza-profile-modal {
+    width: calc(100vw - 20px) !important;
+    padding: 20px 15px !important;
+    max-height: 92vh;
+  }
+
+  .corza-profile-avatar {
+    width: 49px;
+    height: 49px;
+    font-size: 23px;
+  }
+
+  .corza-profile-heading h2 {
+    font-size: 17px;
+  }
+
+  .corza-info-card {
+    padding: 11px;
+  }
+
+  .corza-wallet-top strong {
+    font-size: 25px;
+  }
+
+  .corza-account-details > div {
+    align-items: flex-start;
+  }
+}
