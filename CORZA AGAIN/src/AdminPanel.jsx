@@ -400,6 +400,44 @@ function AdminPanel() {
     }
   }
 
+  // Исключение участника из семьи CORZA
+  async function kickMember(profile) {
+    if (!isLevelOne) {
+      setMessage('Недостаточно прав для исключения участника.')
+      return
+    }
+
+    if (!profile?.id || !profile.is_member) {
+      setMessage('Этот пользователь уже не является участником семьи.')
+      return
+    }
+
+    const nickname = profile.game_nickname || 'Без никнейма'
+
+    const confirmed = window.confirm(
+      `Ты действительно хочешь исключить ${nickname} из семьи CORZA?\n\n` +
+      'Его аккаунт и баланс Corza Coin сохранятся, но доступ к закрытым страницам будет отключён.'
+    )
+
+    if (!confirmed) return
+
+    setLoading(true)
+    setMessage('Исключаем участника...')
+
+    const { error } = await supabase.rpc('kick_corza_member', {
+      p_user_id: profile.id
+    })
+
+    if (error) {
+      setMessage('Ошибка исключения: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    await loadAdminData()
+    setMessage(`${nickname} исключён из семьи CORZA.`)
+  }
+
   // Начисление и списание CC вручную
   async function adjustCoins(event) {
     event.preventDefault()
@@ -553,94 +591,28 @@ function AdminPanel() {
 
   // Обработка заявки на вступление
   async function reviewJoinRequest(requestId, status) {
-    if (!isAdmin || !user) {
-      setMessage('У тебя нет прав для обработки заявок.')
-      return
-    }
-
-    const request = joinRequests.find(
-      (item) => item.id === requestId
-    )
-
-    if (!request || !['pending', 'На рассмотрении'].includes(request.status)) {
-      setMessage('Эта заявка уже была обработана.')
-      return
-    }
-
-    if (status !== 'approved' && status !== 'rejected') {
-      setMessage('Неизвестный статус заявки.')
-      return
-    }
-
-    if (status === 'approved' && !request.user_id) {
-      setMessage('У заявки отсутствует user_id. Не удалось определить профиль игрока.')
-      return
-    }
-
     setLoading(true)
-    setMessage(
-      status === 'approved'
-        ? 'Подтверждаем вступление в CORZA...'
-        : 'Отклоняем заявку...'
-    )
+    setMessage('')
 
-    const reviewedAt = new Date().toISOString()
-
-    // Сначала обновляем статус заявки
-    const { error: requestError } = await supabase
+    const { error } = await supabase
       .from('join_requests')
       .update({
         status,
-        reviewed_at: reviewedAt,
+        reviewed_at: new Date().toISOString(),
         reviewed_by: user.id
       })
       .eq('id', requestId)
-      .in('status', ['pending', 'На рассмотрении'])
 
-    if (requestError) {
-      setMessage('Ошибка обработки заявки на вступление: ' + requestError.message)
+    if (error) {
+      setMessage('Ошибка обработки заявки на вступление: ' + error.message)
       setLoading(false)
       return
     }
 
-    // При одобрении выдаём пользователю членство
-    if (status === 'approved') {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          is_member: true,
-          joined_at: reviewedAt,
-          position: 'Участник'
-        })
-        .eq('id', request.user_id)
-
-      if (profileError) {
-        // Если профиль не удалось обновить, возвращаем заявке прежний статус
-        await supabase
-          .from('join_requests')
-          .update({
-            status: request.status,
-            reviewed_at: null,
-            reviewed_by: null
-          })
-          .eq('id', requestId)
-
-        setMessage(
-          'Заявка не одобрена: не удалось обновить профиль участника. ' +
-          profileError.message
-        )
-        setLoading(false)
-        return
-      }
-    }
-
     await loadAdminData()
-
-    setMessage(
-      status === 'approved'
-        ? 'Заявка одобрена! Пользователь получил статус участника CORZA и доступ к закрытым разделам.'
-        : 'Заявка на вступление отклонена. Доступ к закрытым разделам не выдан.'
-    )
+    setMessage(status === 'approved'
+      ? 'Заявка на вступление одобрена!'
+      : 'Заявка на вступление отклонена.')
   }
 
   // Обработка заявки на День блата
@@ -1428,14 +1400,25 @@ function AdminPanel() {
                 <div>
                   <strong>{profile.game_nickname || 'Без никнейма'}</strong>
                   <span>{profile.server || 'Сервер не указан'}</span>
+                  <span>
+                    {profile.is_member ? 'Участник семьи' : 'Не состоит в семье'}
+                  </span>
                 </div>
 
                 <div className="admin-member-rank">
                   <strong>{profile.rank || 'Новичок'}</strong>
                   <span>{profile.position || 'Участник'}</span>
-                  <span>
-                    {profile.is_member ? 'Членство подтверждено' : 'Не состоит в семье'}
-                  </span>
+
+                  {isLevelOne && profile.is_member && (
+                    <button
+                      type="button"
+                      className="task-review-reject"
+                      disabled={loading || profile.id === user?.id}
+                      onClick={() => kickMember(profile)}
+                    >
+                      Исключить из семьи
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
