@@ -2203,7 +2203,7 @@ footer > span {
 
 /* ОТСТУП ДЛЯ ЗАКРЕПЛЁННОЙ ПАНЕЛИ */
 .app {
-  padding-top: 118px;
+  padding-top: 0;
 }
 
 @media (max-width: 850px) {
