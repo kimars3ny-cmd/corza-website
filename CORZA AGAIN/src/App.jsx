@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
 import AdminPanel from './AdminPanel'
@@ -140,16 +140,26 @@ function MembersPage({
         }}
       >
         <div>
-          <strong>{profile.game_nickname || 'Без игрового никнейма'}</strong>
-          <span>{profile.server || 'Сервер не указан'}</span>
+          <strong>
+            {profile.game_nickname || 'Без игрового никнейма'}
+          </strong>
+
+          <span>
+            {profile.server || 'Сервер не указан'}
+          </span>
+
           {isMember && (
-            <span>{profile.position || 'Участник семьи'}</span>
+            <span>
+              {profile.position || 'Участник семьи'}
+            </span>
           )}
         </div>
 
         <div className="admin-member-rank">
           <strong>{isMember ? 'CORZA' : 'Пользователь'}</strong>
-          <span>{isMember ? 'Участник семьи' : 'Не состоит в семье'}</span>
+          <span>
+            {isMember ? 'Участник семьи' : 'Не состоит в семье'}
+          </span>
         </div>
       </article>
     )
@@ -213,7 +223,9 @@ function MembersPage({
             </div>
 
             {members.length === 0 ? (
-              <p className="admin-empty">Пока участников нет.</p>
+              <p className="admin-empty">
+                Пока участников нет.
+              </p>
             ) : (
               <div className="admin-list" style={{ marginTop: '20px' }}>
                 {members.map((profile) => renderUser(profile, true))}
@@ -260,7 +272,6 @@ function App() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [sessionLoading, setSessionLoading] = useState(true)
 
-  // Членство определяется полем is_member
   const isMember = Boolean(
     user && profile?.is_member === true && !profileLoading
   )
@@ -278,7 +289,6 @@ function App() {
   const [blatEnabled, setBlatEnabled] = useState(true)
   const [blatSettingsLoading, setBlatSettingsLoading] = useState(true)
 
-  // Списки участников и зарегистрированных пользователей
   const [members, setMembers] = useState([])
   const [registeredUsers, setRegisteredUsers] = useState([])
   const [membersLoading, setMembersLoading] = useState(false)
@@ -304,6 +314,7 @@ function App() {
       }
 
       const currentUser = session?.user ?? null
+
       setProfileLoading(Boolean(currentUser))
       setUser(currentUser)
       setSessionLoading(false)
@@ -315,6 +326,7 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null
+
       setProfileLoading(Boolean(currentUser))
       setUser(currentUser)
       setSessionLoading(false)
@@ -434,8 +446,8 @@ function App() {
     }
   }, [user])
 
-  // Загрузка пользователей для страницы участников
-  async function loadMembers() {
+  // Загрузка участников и пользователей сайта
+  const loadMembers = useCallback(async () => {
     setMembersLoading(true)
     setMembersError('')
 
@@ -464,19 +476,22 @@ function App() {
     )
 
     setMembersLoading(false)
-  }
+  }, [])
 
-  // Загружаем список при открытии страницы
+  // Первоначальная загрузка страницы участников
   useEffect(() => {
     if (page === 'members') {
       loadMembers()
     }
-  }, [page])
+  }, [page, loadMembers])
 
-  // Обновляем список, если пользователь возвращается на вкладку
+  // Обновление при возвращении на вкладку
   useEffect(() => {
     function handleVisibilityChange() {
-      if (document.visibilityState === 'visible' && page === 'members') {
+      if (
+        document.visibilityState === 'visible' &&
+        page === 'members'
+      ) {
         loadMembers()
       }
     }
@@ -486,7 +501,31 @@ function App() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [page])
+  }, [page, loadMembers])
+
+  // Автоматическое обновление при изменении профилей в Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel('corza-members-page')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        () => {
+          if (window.location.hash === '#members') {
+            loadMembers()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadMembers])
 
   // Загрузка настройки Дня блата
   useEffect(() => {
@@ -977,7 +1016,6 @@ function App() {
           </>
         )}
 
-        {/* СТРАНИЦА УЧАСТНИКОВ */}
         {page === 'members' && (
           <MembersPage
             members={members}
@@ -988,7 +1026,6 @@ function App() {
           />
         )}
 
-        {/* ДЕНЬ БЛАТА */}
         {page === 'blat' && (
           blatEnabled && !blatSettingsLoading ? (
             <BlatPage
