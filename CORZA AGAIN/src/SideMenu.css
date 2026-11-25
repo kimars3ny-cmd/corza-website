@@ -309,3 +309,68 @@
     padding: 20px 16px;
   }
 }
+
+/* ИСПРАВЛЕНИЕ КОНФЛИКТА С APP.CSS */
+
+.app > .side-menu-panel {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 10002 !important;
+}
+
+.app > .side-menu-toggle {
+  position: fixed !important;
+  z-index: 10003 !important;
+}
+
+.app > .side-menu-overlay {
+  position: fixed !important;
+  z-index: 10000 !important;
+}
+
+
+/* КНОПКА УЧАСТНИКОВ СЕМЬИ */
+
+.side-menu-panel .side-menu-members-link {
+  background: linear-gradient(
+    100deg,
+    rgba(125, 80, 220, 0.24),
+    rgba(40, 130, 230, 0.13)
+  ) !important;
+
+  border: 1px solid rgba(170, 135, 255, 0.45) !important;
+
+  box-shadow: 0 0 18px rgba(125, 85, 255, 0.12);
+}
+
+.side-menu-panel .side-menu-members-link .side-menu-link-icon {
+  background: linear-gradient(135deg, #8054e8, #278eea);
+  color: white;
+}
+
+.side-menu-panel .side-menu-members-link .side-menu-link-arrow {
+  opacity: 1;
+  color: #c3aaff;
+}
+
+.side-menu-panel .side-menu-members-link:hover {
+  background: linear-gradient(
+    100deg,
+    rgba(145, 90, 240, 0.35),
+    rgba(40, 140, 255, 0.22)
+  ) !important;
+}
+
+/* Чтобы все пункты меню были доступны прокруткой */
+.side-menu-panel {
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 120, 255, 0.4) transparent;
+}
+
+.side-menu-links {
+  flex-shrink: 0;
+}

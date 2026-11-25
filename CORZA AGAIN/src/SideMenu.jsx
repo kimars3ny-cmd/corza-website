@@ -44,6 +44,14 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
       visible: true,
     },
     {
+      title: 'Участники семьи',
+      description: 'Состав CORZA и пользователи сайта',
+      link: '#members',
+      icon: '♙',
+      visible: true,
+      special: true,
+    },
+    {
       title: 'Рейтинг CC',
       description: 'Топ участников',
       link: '#coins',
@@ -119,6 +127,7 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
         <div className="side-menu-header">
           <div className="side-menu-brand">
             <div className="side-menu-logo">C</div>
+
             <div>
               <strong>CORZA</strong>
               <span>FAMILY PORTAL</span>
@@ -170,7 +179,9 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
               <a
                 key={item.link}
                 href={item.link}
-                className="side-menu-link"
+                className={`side-menu-link ${
+                  item.special ? 'side-menu-members-link' : ''
+                }`}
                 onClick={closeMenu}
               >
                 <span className="side-menu-link-icon">
