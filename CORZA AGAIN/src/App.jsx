@@ -91,13 +91,10 @@ const separatePages = [
   'admin',
   'tasks',
   'blat',
+  'members',
 ]
 
-const memberOnlyPages = [
-  'promotion',
-  'tasks',
-  'transfers',
-]
+const memberOnlyPages = ['promotion', 'tasks', 'transfers']
 
 function getPageFromHash() {
   const hash = window.location.hash.replace('#', '')
@@ -117,11 +114,140 @@ function LeaderAvatar({ leader }) {
           onError={() => setImageError(true)}
         />
       ) : (
-        <span className="leader-avatar-fallback">
-          {leader.initials}
-        </span>
+        <span className="leader-avatar-fallback">{leader.initials}</span>
       )}
     </div>
+  )
+}
+
+function MembersPage({
+  members,
+  registeredUsers,
+  loading,
+  error,
+  onRefresh,
+}) {
+  function renderUser(profile, isMember) {
+    return (
+      <article
+        className="admin-member"
+        key={profile.id}
+        style={{
+          padding: '18px',
+          borderRadius: '16px',
+          background: 'rgba(130, 110, 210, 0.07)',
+          border: '1px solid rgba(160, 140, 220, 0.15)',
+        }}
+      >
+        <div>
+          <strong>{profile.game_nickname || 'Без игрового никнейма'}</strong>
+          <span>{profile.server || 'Сервер не указан'}</span>
+          {isMember && (
+            <span>{profile.position || 'Участник семьи'}</span>
+          )}
+        </div>
+
+        <div className="admin-member-rank">
+          <strong>{isMember ? 'CORZA' : 'Пользователь'}</strong>
+          <span>{isMember ? 'Участник семьи' : 'Не состоит в семье'}</span>
+        </div>
+      </article>
+    )
+  }
+
+  return (
+    <section
+      className="standalone-page glass"
+      style={{
+        width: 'min(1100px, calc(100% - 32px))',
+        margin: '120px auto 60px',
+        padding: 'clamp(22px, 4vw, 42px)',
+        borderRadius: '24px',
+      }}
+    >
+      <span className="section-label">CORZA / COMMUNITY</span>
+
+      <h1>
+        Состав <span>семьи.</span>
+      </h1>
+
+      <p>
+        Здесь собраны участники CORZA и пользователи,
+        зарегистрированные на нашем сайте.
+      </p>
+
+      <button
+        type="button"
+        className="secondary-button"
+        onClick={onRefresh}
+        disabled={loading}
+        style={{ marginTop: '20px' }}
+      >
+        {loading ? 'Обновляем...' : 'Обновить список'}
+      </button>
+
+      {error && (
+        <div className="admin-message" style={{ marginTop: '20px' }}>
+          Не удалось загрузить пользователей: {error}
+        </div>
+      )}
+
+      {loading ? (
+        <p style={{ padding: '35px 0', textAlign: 'center' }}>
+          Загружаем состав CORZA...
+        </p>
+      ) : (
+        <>
+          <div style={{ marginTop: '42px' }}>
+            <div className="section-top">
+              <div>
+                <span className="section-label">CORZA FAMILY</span>
+                <h2>
+                  Участники <span>семьи.</span>
+                </h2>
+              </div>
+
+              <strong style={{ fontSize: '22px', color: '#b69aff' }}>
+                {members.length}
+              </strong>
+            </div>
+
+            {members.length === 0 ? (
+              <p className="admin-empty">Пока участников нет.</p>
+            ) : (
+              <div className="admin-list" style={{ marginTop: '20px' }}>
+                {members.map((profile) => renderUser(profile, true))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: '50px' }}>
+            <div className="section-top">
+              <div>
+                <span className="section-label">REGISTERED USERS</span>
+                <h2>
+                  Зарегистрированные <span>пользователи.</span>
+                </h2>
+              </div>
+
+              <strong style={{ fontSize: '22px', color: '#9ca3af' }}>
+                {registeredUsers.length}
+              </strong>
+            </div>
+
+            {registeredUsers.length === 0 ? (
+              <p className="admin-empty" style={{ marginTop: '20px' }}>
+                Других зарегистрированных пользователей пока нет.
+              </p>
+            ) : (
+              <div className="admin-list" style={{ marginTop: '20px' }}>
+                {registeredUsers.map((profile) => renderUser(profile, false))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   )
 }
 
@@ -134,14 +260,11 @@ function App() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [sessionLoading, setSessionLoading] = useState(true)
 
-  // Проверка членства в семье
+  // Членство определяется полем is_member
   const isMember = Boolean(
-    user &&
-    profile?.joined_at &&
-    !profileLoading
+    user && profile?.is_member === true && !profileLoading
   )
 
-  // Если профиль не заполнен, запоминаем страницу, которую хотел открыть пользователь
   const [pendingProfilePage, setPendingProfilePage] = useState(null)
   const [forceProfileEdit, setForceProfileEdit] = useState(false)
 
@@ -152,9 +275,14 @@ function App() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState('')
 
-  // Состояние Дня блата
   const [blatEnabled, setBlatEnabled] = useState(true)
   const [blatSettingsLoading, setBlatSettingsLoading] = useState(true)
+
+  // Списки участников и зарегистрированных пользователей
+  const [members, setMembers] = useState([])
+  const [registeredUsers, setRegisteredUsers] = useState([])
+  const [membersLoading, setMembersLoading] = useState(false)
+  const [membersError, setMembersError] = useState('')
 
   // Получение пользователя
   useEffect(() => {
@@ -176,7 +304,6 @@ function App() {
       }
 
       const currentUser = session?.user ?? null
-
       setProfileLoading(Boolean(currentUser))
       setUser(currentUser)
       setSessionLoading(false)
@@ -188,7 +315,6 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null
-
       setProfileLoading(Boolean(currentUser))
       setUser(currentUser)
       setSessionLoading(false)
@@ -215,7 +341,7 @@ function App() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('game_nickname, server, joined_at')
+        .select('game_nickname, server, joined_at, is_member, rank, position')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -238,35 +364,28 @@ function App() {
     }
   }, [user])
 
-  // Обязательное заполнение профиля при переходе из верхнего или бокового меню
+  // Обязательное заполнение профиля
   useEffect(() => {
     function handleProtectedNavigation(event) {
       const target = event.target
-
       if (!(target instanceof Element)) return
 
       const link = target.closest('a[href^="#"]')
-
       if (!link) return
 
-      // Ограничение действует на ссылки верхнего и бокового меню
       if (!link.closest('.navbar nav, .side-menu-panel')) return
-
       if (!user) return
 
       const destination = link.getAttribute('href')
-
       if (!destination || destination === '#') return
 
       const profileIncomplete =
         !profile?.game_nickname?.trim() ||
         !profile?.server?.toString().trim()
 
-      // Пока профиль загружается, переход тоже временно блокируется
       if (profileLoading || profileIncomplete) {
         event.preventDefault()
         event.stopPropagation()
-
         setPendingProfilePage(destination)
         setForceProfileEdit(true)
         setAuthOpen(true)
@@ -314,6 +433,60 @@ function App() {
       active = false
     }
   }, [user])
+
+  // Загрузка пользователей для страницы участников
+  async function loadMembers() {
+    setMembersLoading(true)
+    setMembersError('')
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, game_nickname, server, is_member, position, rank')
+      .order('game_nickname', { ascending: true })
+
+    if (error) {
+      console.error('Ошибка загрузки участников:', error)
+      setMembersError(error.message)
+      setMembers([])
+      setRegisteredUsers([])
+      setMembersLoading(false)
+      return
+    }
+
+    const allProfiles = data || []
+
+    setMembers(
+      allProfiles.filter((item) => item.is_member === true)
+    )
+
+    setRegisteredUsers(
+      allProfiles.filter((item) => item.is_member !== true)
+    )
+
+    setMembersLoading(false)
+  }
+
+  // Загружаем список при открытии страницы
+  useEffect(() => {
+    if (page === 'members') {
+      loadMembers()
+    }
+  }, [page])
+
+  // Обновляем список, если пользователь возвращается на вкладку
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && page === 'members') {
+        loadMembers()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [page])
 
   // Загрузка настройки Дня блата
   useEffect(() => {
@@ -409,13 +582,12 @@ function App() {
     }
   }, [])
 
-  // Переключение страниц и защита разделов участников
+  // Переключение страниц и защита закрытых разделов
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
       let nextPage = getPageFromHash()
 
-      // Не принимаем решение о доступе, пока проверяем авторизацию и профиль
       if (
         memberOnlyPages.includes(nextPage) &&
         (sessionLoading || profileLoading)
@@ -424,11 +596,7 @@ function App() {
         return
       }
 
-      // Только участники с заполненным joined_at могут открывать эти страницы
-      if (
-        memberOnlyPages.includes(nextPage) &&
-        !isMember
-      ) {
+      if (memberOnlyPages.includes(nextPage) && !isMember) {
         window.location.hash = '#home'
         setPage('home')
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -459,13 +627,19 @@ function App() {
     }
 
     handleHashChange()
-
     window.addEventListener('hashchange', handleHashChange)
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
     }
-  }, [blatEnabled, user, profile, profileLoading, sessionLoading, isMember])
+  }, [
+    blatEnabled,
+    user,
+    profile,
+    profileLoading,
+    sessionLoading,
+    isMember,
+  ])
 
   const accountName =
     profile?.game_nickname ||
@@ -483,9 +657,7 @@ function App() {
         open={authOpen}
         forceProfileEdit={forceProfileEdit}
         onClose={() => {
-          if (!forceProfileEdit) {
-            setAuthOpen(false)
-          }
+          if (!forceProfileEdit) setAuthOpen(false)
         }}
         onProfileSaved={(savedProfile) => {
           setProfile((currentProfile) => ({
@@ -506,7 +678,6 @@ function App() {
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
-      {/* БОКОВОЕ МЕНЮ */}
       <SideMenu
         user={user}
         isMember={isMember}
@@ -514,16 +685,13 @@ function App() {
         blatEnabled={blatEnabled && !blatSettingsLoading}
       />
 
-      {/* ПЛАВАЮЩАЯ ПЛАШКА ДЕНЬ БЛАТА */}
       {blatEnabled && !blatSettingsLoading && page !== 'blat' && (
         <a href="#blat" className="blat-floating-button">
           <span className="blat-floating-icon">✦</span>
-
           <span className="blat-floating-text">
             <strong>День блата</strong>
             <small>Подать заявку</small>
           </span>
-
           <span className="blat-floating-arrow">↗</span>
         </a>
       )}
@@ -547,13 +715,8 @@ function App() {
             onClick={() => setAuthOpen(true)}
             title="Ваш аккаунт"
           >
-            <div className="account-avatar">
-              {accountInitial}
-            </div>
-
-            <span className="account-name">
-              {accountName}
-            </span>
+            <div className="account-avatar">{accountInitial}</div>
+            <span className="account-name">{accountName}</span>
           </button>
         ) : (
           <button
@@ -566,7 +729,6 @@ function App() {
       </header>
 
       <main>
-        {/* ГЛАВНАЯ СТРАНИЦА */}
         {page === 'home' && (
           <>
             <section className="hero" id="home">
@@ -590,38 +752,22 @@ function App() {
                   <a href="#join" className="primary-button">
                     Присоединиться <span>↗</span>
                   </a>
-
                   <a href="#about" className="secondary-button">
                     Узнать о нас
                   </a>
                 </div>
 
                 <div className="hero-stats">
-                  <div>
-                    <strong>01</strong>
-                    <span>Единая команда</span>
-                  </div>
-
-                  <div>
-                    <strong>∞</strong>
-                    <span>Возможности</span>
-                  </div>
-
-                  <div>
-                    <strong>24/7</strong>
-                    <span>Развитие семьи</span>
-                  </div>
+                  <div><strong>01</strong><span>Единая команда</span></div>
+                  <div><strong>∞</strong><span>Возможности</span></div>
+                  <div><strong>24/7</strong><span>Развитие семьи</span></div>
                 </div>
               </div>
 
               <div className="orbital">
                 <div className="orbit orbit-one" />
                 <div className="orbit orbit-two" />
-
-                <div className="planet">
-                  <span>C</span>
-                </div>
-
+                <div className="planet"><span>C</span></div>
                 <div className="orbit-label">C O R Z A</div>
 
                 <div className="floating-card glass">
@@ -634,15 +780,10 @@ function App() {
               </div>
             </section>
 
-            {/* О СЕМЬЕ */}
             <section className="about-section" id="about">
               <div className="section-heading">
                 <span className="section-label">01 / О ПРОЕКТЕ</span>
-
-                <h2>
-                  Созданы для <span>большего.</span>
-                </h2>
-
+                <h2>Созданы для <span>большего.</span></h2>
                 <p>
                   Мы строим сильную государственную семью, где каждый участник
                   может развиваться, достигать целей и вносить вклад в общее дело.
@@ -650,31 +791,20 @@ function App() {
               </div>
             </section>
 
-            {/* РУКОВОДСТВО */}
             <section className="leaders-section" id="leaders">
               <div className="section-top">
                 <div>
                   <span className="section-label">02 / УПРАВЛЕНИЕ</span>
-
-                  <h2>
-                    Наше <span>руководство.</span>
-                  </h2>
+                  <h2>Наше <span>руководство.</span></h2>
                 </div>
-
-                <p>
-                  Люди, отвечающие за развитие и стабильность CORZA.
-                </p>
+                <p>Люди, отвечающие за развитие и стабильность CORZA.</p>
               </div>
 
               <div className="leaders-grid">
                 {leaders.map((leader) => (
                   <article className="leader-card glass" key={leader.name}>
                     <LeaderAvatar leader={leader} />
-
-                    <span className="leader-role">
-                      {leader.role}
-                    </span>
-
+                    <span className="leader-role">{leader.role}</span>
                     <h3>{leader.name}</h3>
                     <p>{leader.description}</p>
                     <div className="leader-line" />
@@ -683,7 +813,6 @@ function App() {
               </div>
             </section>
 
-            {/* РЕЙТИНГ CORZA COIN */}
             <section
               className="features-section"
               id="coins"
@@ -691,18 +820,10 @@ function App() {
             >
               <div className="section-top">
                 <div>
-                  <span className="section-label">
-                    03 / CORZA ECONOMY
-                  </span>
-
-                  <h2>
-                    TOP-100 <span>Corza Coin.</span>
-                  </h2>
+                  <span className="section-label">03 / CORZA ECONOMY</span>
+                  <h2>TOP-100 <span>Corza Coin.</span></h2>
                 </div>
-
-                <p>
-                  Самые богатые участники государственной семьи CORZA.
-                </p>
+                <p>Самые богатые участники государственной семьи CORZA.</p>
               </div>
 
               <div
@@ -720,11 +841,9 @@ function App() {
                 ) : leaderboardError ? (
                   <div style={{ textAlign: 'center', padding: '30px' }}>
                     <h3>Не удалось загрузить рейтинг</h3>
-
                     <p style={{ opacity: 0.7, marginTop: '10px' }}>
                       {leaderboardError}
                     </p>
-
                     <button
                       className="secondary-button"
                       style={{ marginTop: '18px' }}
@@ -736,11 +855,8 @@ function App() {
                           'get_corza_coin_leaderboard'
                         )
 
-                        if (error) {
-                          setLeaderboardError(error.message)
-                        } else {
-                          setCoinLeaderboard(data || [])
-                        }
+                        if (error) setLeaderboardError(error.message)
+                        else setCoinLeaderboard(data || [])
 
                         setLeaderboardLoading(false)
                       }}
@@ -770,59 +886,42 @@ function App() {
                             : 'rgba(120, 100, 180, 0.06)',
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: index < 3 ? '20px' : '15px',
-                            fontWeight: 900,
-                            textAlign: 'center',
-                            color: index === 0
-                              ? '#ffd66b'
-                              : index === 1
-                                ? '#d6dce8'
-                                : index === 2
-                                  ? '#d99a70'
-                                  : '#a99bd2',
-                          }}
-                        >
-                          {index === 0
-                            ? '🥇'
-                            : index === 1
-                              ? '🥈'
-                              : index === 2
-                                ? '🥉'
-                                : `#${index + 1}`}
+                        <div style={{
+                          fontSize: index < 3 ? '20px' : '15px',
+                          fontWeight: 900,
+                          textAlign: 'center',
+                          color: index === 0 ? '#ffd66b'
+                            : index === 1 ? '#d6dce8'
+                              : index === 2 ? '#d99a70' : '#a99bd2',
+                        }}>
+                          {index === 0 ? '🥇'
+                            : index === 1 ? '🥈'
+                              : index === 2 ? '🥉' : `#${index + 1}`}
                         </div>
 
                         <div style={{ minWidth: 0 }}>
-                          <strong
-                            style={{
-                              display: 'block',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
+                          <strong style={{
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}>
                             {player.player_name}
                           </strong>
-
-                          <span
-                            style={{
-                              display: 'block',
-                              fontSize: '12px',
-                              opacity: 0.6,
-                              marginTop: '4px',
-                            }}
-                          >
+                          <span style={{
+                            display: 'block',
+                            fontSize: '12px',
+                            opacity: 0.6,
+                            marginTop: '4px',
+                          }}>
                             {player.player_server || 'Сервер не указан'}
                           </span>
                         </div>
 
-                        <strong
-                          style={{
-                            color: '#b69aff',
-                            whiteSpace: 'nowrap',
-                            fontSize: '14px',
-                          }}
-                        >
+                        <strong style={{
+                          color: '#b69aff',
+                          whiteSpace: 'nowrap',
+                          fontSize: '14px',
+                        }}>
                           {Number(player.coin_balance).toLocaleString('ru-RU')} CC
                         </strong>
                       </div>
@@ -830,27 +929,21 @@ function App() {
                   </div>
                 )}
 
-                <p
-                  style={{
-                    textAlign: 'center',
-                    opacity: 0.5,
-                    fontSize: '12px',
-                    marginTop: '18px',
-                  }}
-                >
+                <p style={{
+                  textAlign: 'center',
+                  opacity: 0.5,
+                  fontSize: '12px',
+                  marginTop: '18px',
+                }}>
                   Рейтинг формируется автоматически на основе баланса игроков.
                 </p>
               </div>
             </section>
 
-            {/* РАЗДЕЛЫ САЙТА */}
             <section className="features-section" id="features">
               <div className="section-heading">
                 <span className="section-label">04 / ИНФРАСТРУКТУРА</span>
-
-                <h2>
-                  Всё необходимое. <span>В одном месте.</span>
-                </h2>
+                <h2>Всё необходимое. <span>В одном месте.</span></h2>
               </div>
 
               <div className="features-grid">
@@ -869,27 +962,30 @@ function App() {
               </div>
             </section>
 
-            {/* ПРИГЛАШЕНИЕ В СЕМЬЮ */}
             <section className="join-section">
               <div className="join-card glass">
                 <span className="section-label">
                   05 / ТВОЯ ИСТОРИЯ НАЧИНАЕТСЯ ЗДЕСЬ
                 </span>
-
-                <h2>
-                  Стань частью <span>CORZA.</span>
-                </h2>
-
-                <p>
-                  Твоя следующая глава начинается с одного решения.
-                </p>
-
+                <h2>Стань частью <span>CORZA.</span></h2>
+                <p>Твоя следующая глава начинается с одного решения.</p>
                 <a className="primary-button" href="#join">
                   Подать заявку <span>↗</span>
                 </a>
               </div>
             </section>
           </>
+        )}
+
+        {/* СТРАНИЦА УЧАСТНИКОВ */}
+        {page === 'members' && (
+          <MembersPage
+            members={members}
+            registeredUsers={registeredUsers}
+            loading={membersLoading}
+            error={membersError}
+            onRefresh={loadMembers}
+          />
         )}
 
         {/* ДЕНЬ БЛАТА */}
@@ -904,79 +1000,53 @@ function App() {
             <section className="standalone-page glass">
               <span className="section-label">CORZA / BLAT DAY</span>
               <h1>Приём заявок <span>закрыт.</span></h1>
-              <p>
-                В данный момент День блата выключен администрацией CORZA.
-              </p>
-              <a className="secondary-button" href="#home">
-                На главную
-              </a>
+              <p>В данный момент День блата выключен администрацией CORZA.</p>
+              <a className="secondary-button" href="#home">На главную</a>
             </section>
           )
         )}
 
-        {/* ЗАДАНИЯ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
         {page === 'tasks' && isMember && <TasksPage />}
 
-        {/* ВСТУПЛЕНИЕ */}
         {page === 'join' && (
           <JoinPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
-        {/* ПОВЫШЕНИЕ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
         {page === 'promotion' && isMember && (
           <PromotionPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
-        {/* ГОСУДАРСТВЕННЫЕ СТРУКТУРЫ */}
         {page === 'government' && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / GOVERNMENT</span>
-
-            <h1>
-              Государственные <span>структуры.</span>
-            </h1>
-
+            <h1>Государственные <span>структуры.</span></h1>
             <p>
               Здесь будет размещена информация о руководстве LSPD, LSCSD,
               FIB и GOV на серверах Majestic RP.
             </p>
-
             <p className="page-note">
               Состав организаций и занимаемые CORZA руководящие должности
               добавим отдельным этапом.
             </p>
-
-            <a className="secondary-button" href="#home">
-              На главную
-            </a>
+            <a className="secondary-button" href="#home">На главную</a>
           </section>
         )}
 
-        {/* ПЕРЕВОДЫ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
         {page === 'transfers' && isMember && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / TRANSFERS</span>
-
-            <h1>
-              Заявления на <span>перевод.</span>
-            </h1>
-
+            <h1>Заявления на <span>перевод.</span></h1>
             <p>
               Раздел для переводов из другой фракции в организацию CORZA
               и из CORZA в другую фракцию будет добавлен следующим этапом.
             </p>
-
             <p className="page-note">
               Пока отправка заявлений на перевод не подключена к базе данных.
             </p>
-
-            <a className="secondary-button" href="#home">
-              На главную
-            </a>
+            <a className="secondary-button" href="#home">На главную</a>
           </section>
         )}
 
-        {/* АДМИН-ПАНЕЛЬ */}
         {page === 'admin' && isAdmin && !adminCheckLoading && (
           <AdminPanel />
         )}
@@ -987,9 +1057,7 @@ function App() {
           <span className="logo-symbol">C</span>
           <span>CORZA</span>
         </a>
-
         <p>© 2026 CORZA FAMILY. ALL RIGHTS RESERVED.</p>
-
         <span>MAJESTIC ROLEPLAY</span>
       </footer>
 
