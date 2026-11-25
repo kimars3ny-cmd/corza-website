@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
@@ -92,6 +93,12 @@ const separatePages = [
   'blat',
 ]
 
+const memberOnlyPages = [
+  'promotion',
+  'tasks',
+  'transfers',
+]
+
 function getPageFromHash() {
   const hash = window.location.hash.replace('#', '')
   return separatePages.includes(hash) ? hash : 'home'
@@ -125,6 +132,14 @@ function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [sessionLoading, setSessionLoading] = useState(true)
+
+  // Проверка членства в семье
+  const isMember = Boolean(
+    user &&
+    profile?.joined_at &&
+    !profileLoading
+  )
 
   // Если профиль не заполнен, запоминаем страницу, которую хотел открыть пользователь
   const [pendingProfilePage, setPendingProfilePage] = useState(null)
@@ -155,10 +170,16 @@ function App() {
 
       if (error) {
         console.error('Ошибка получения сессии:', error)
+        setSessionLoading(false)
+        setProfileLoading(false)
         return
       }
 
-      setUser(session?.user ?? null)
+      const currentUser = session?.user ?? null
+
+      setProfileLoading(Boolean(currentUser))
+      setUser(currentUser)
+      setSessionLoading(false)
     }
 
     loadSession()
@@ -166,7 +187,11 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const currentUser = session?.user ?? null
+
+      setProfileLoading(Boolean(currentUser))
+      setUser(currentUser)
+      setSessionLoading(false)
     })
 
     return () => {
@@ -190,7 +215,7 @@ function App() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('game_nickname, server')
+        .select('game_nickname, server, joined_at')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -384,11 +409,31 @@ function App() {
     }
   }, [])
 
-  // Переключение страниц
+  // Переключение страниц и защита разделов участников
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
       let nextPage = getPageFromHash()
+
+      // Не принимаем решение о доступе, пока проверяем авторизацию и профиль
+      if (
+        memberOnlyPages.includes(nextPage) &&
+        (sessionLoading || profileLoading)
+      ) {
+        setPage('home')
+        return
+      }
+
+      // Только участники с заполненным joined_at могут открывать эти страницы
+      if (
+        memberOnlyPages.includes(nextPage) &&
+        !isMember
+      ) {
+        window.location.hash = '#home'
+        setPage('home')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
 
       if (nextPage === 'blat' && !blatEnabled) {
         window.location.hash = '#home'
@@ -420,7 +465,7 @@ function App() {
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
     }
-  }, [blatEnabled])
+  }, [blatEnabled, user, profile, profileLoading, sessionLoading, isMember])
 
   const accountName =
     profile?.game_nickname ||
@@ -443,7 +488,11 @@ function App() {
           }
         }}
         onProfileSaved={(savedProfile) => {
-          setProfile(savedProfile)
+          setProfile((currentProfile) => ({
+            ...(currentProfile || {}),
+            ...savedProfile,
+          }))
+
           setForceProfileEdit(false)
           setAuthOpen(false)
 
@@ -460,6 +509,7 @@ function App() {
       {/* БОКОВОЕ МЕНЮ */}
       <SideMenu
         user={user}
+        isMember={isMember}
         isAdmin={isAdmin && !adminCheckLoading}
         blatEnabled={blatEnabled && !blatSettingsLoading}
       />
@@ -864,16 +914,16 @@ function App() {
           )
         )}
 
-        {/* ЗАДАНИЯ */}
-        {page === 'tasks' && <TasksPage />}
+        {/* ЗАДАНИЯ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
+        {page === 'tasks' && isMember && <TasksPage />}
 
         {/* ВСТУПЛЕНИЕ */}
         {page === 'join' && (
           <JoinPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
-        {/* ПОВЫШЕНИЕ */}
-        {page === 'promotion' && (
+        {/* ПОВЫШЕНИЕ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
+        {page === 'promotion' && isMember && (
           <PromotionPage onOpenAuth={() => setAuthOpen(true)} />
         )}
 
@@ -902,8 +952,8 @@ function App() {
           </section>
         )}
 
-        {/* ПЕРЕВОДЫ */}
-        {page === 'transfers' && (
+        {/* ПЕРЕВОДЫ — ТОЛЬКО ДЛЯ УЧАСТНИКОВ */}
+        {page === 'transfers' && isMember && (
           <section className="standalone-page glass">
             <span className="section-label">CORZA / TRANSFERS</span>
 

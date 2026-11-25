@@ -105,7 +105,7 @@ function AdminPanel() {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, game_nickname, server, rank, position, joined_at')
+        .select('id, game_nickname, server, rank, position, joined_at, is_member')
         .order('created_at', { ascending: false }),
 
       supabase
@@ -553,28 +553,94 @@ function AdminPanel() {
 
   // Обработка заявки на вступление
   async function reviewJoinRequest(requestId, status) {
-    setLoading(true)
-    setMessage('')
+    if (!isAdmin || !user) {
+      setMessage('У тебя нет прав для обработки заявок.')
+      return
+    }
 
-    const { error } = await supabase
+    const request = joinRequests.find(
+      (item) => item.id === requestId
+    )
+
+    if (!request || !['pending', 'На рассмотрении'].includes(request.status)) {
+      setMessage('Эта заявка уже была обработана.')
+      return
+    }
+
+    if (status !== 'approved' && status !== 'rejected') {
+      setMessage('Неизвестный статус заявки.')
+      return
+    }
+
+    if (status === 'approved' && !request.user_id) {
+      setMessage('У заявки отсутствует user_id. Не удалось определить профиль игрока.')
+      return
+    }
+
+    setLoading(true)
+    setMessage(
+      status === 'approved'
+        ? 'Подтверждаем вступление в CORZA...'
+        : 'Отклоняем заявку...'
+    )
+
+    const reviewedAt = new Date().toISOString()
+
+    // Сначала обновляем статус заявки
+    const { error: requestError } = await supabase
       .from('join_requests')
       .update({
         status,
-        reviewed_at: new Date().toISOString(),
+        reviewed_at: reviewedAt,
         reviewed_by: user.id
       })
       .eq('id', requestId)
+      .in('status', ['pending', 'На рассмотрении'])
 
-    if (error) {
-      setMessage('Ошибка обработки заявки на вступление: ' + error.message)
+    if (requestError) {
+      setMessage('Ошибка обработки заявки на вступление: ' + requestError.message)
       setLoading(false)
       return
     }
 
+    // При одобрении выдаём пользователю членство
+    if (status === 'approved') {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          is_member: true,
+          joined_at: reviewedAt,
+          position: 'Участник'
+        })
+        .eq('id', request.user_id)
+
+      if (profileError) {
+        // Если профиль не удалось обновить, возвращаем заявке прежний статус
+        await supabase
+          .from('join_requests')
+          .update({
+            status: request.status,
+            reviewed_at: null,
+            reviewed_by: null
+          })
+          .eq('id', requestId)
+
+        setMessage(
+          'Заявка не одобрена: не удалось обновить профиль участника. ' +
+          profileError.message
+        )
+        setLoading(false)
+        return
+      }
+    }
+
     await loadAdminData()
-    setMessage(status === 'approved'
-      ? 'Заявка на вступление одобрена!'
-      : 'Заявка на вступление отклонена.')
+
+    setMessage(
+      status === 'approved'
+        ? 'Заявка одобрена! Пользователь получил статус участника CORZA и доступ к закрытым разделам.'
+        : 'Заявка на вступление отклонена. Доступ к закрытым разделам не выдан.'
+    )
   }
 
   // Обработка заявки на День блата
@@ -708,7 +774,7 @@ function AdminPanel() {
       <div className="admin-stats">
         <div className="admin-stat glass">
           <span>Участников</span>
-          <strong>{profiles.length}</strong>
+          <strong>{profiles.filter((profile) => profile.is_member).length}</strong>
         </div>
 
         <div className="admin-stat glass">
@@ -1367,6 +1433,9 @@ function AdminPanel() {
                 <div className="admin-member-rank">
                   <strong>{profile.rank || 'Новичок'}</strong>
                   <span>{profile.position || 'Участник'}</span>
+                  <span>
+                    {profile.is_member ? 'Членство подтверждено' : 'Не состоит в семье'}
+                  </span>
                 </div>
               </article>
             ))}
