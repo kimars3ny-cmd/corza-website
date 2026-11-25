@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
@@ -25,6 +26,7 @@ function AuthModal({
   // Corza Coin
   const [coinBalance, setCoinBalance] = useState(null)
   const [coinTransactions, setCoinTransactions] = useState([])
+  const [showAllTransactions, setShowAllTransactions] = useState(false)
 
   // Проверяем авторизацию
   useEffect(() => {
@@ -121,6 +123,7 @@ function AuthModal({
       if (!user) {
         setCoinBalance(null)
         setCoinTransactions([])
+        setShowAllTransactions(false)
         return
       }
 
@@ -266,6 +269,7 @@ function AuthModal({
       setIsAdmin(false)
       setCoinBalance(null)
       setCoinTransactions([])
+      setShowAllTransactions(false)
       setEditProfile(false)
       setMessage('')
       onClose()
@@ -335,6 +339,10 @@ function AuthModal({
     user?.user_metadata?.global_name ||
     user?.user_metadata?.name ||
     user?.user_metadata?.user_name
+
+  const visibleTransactions = showAllTransactions
+    ? coinTransactions
+    : coinTransactions.slice(0, 1)
 
   return (
     <div
@@ -575,9 +583,9 @@ function AuthModal({
 
                   <div
                     style={{
-                      padding: '24px',
-                      marginTop: '14px',
-                      borderRadius: '18px',
+                      padding: '20px',
+                      marginTop: '12px',
+                      borderRadius: '16px',
                       border: '1px solid rgba(150, 110, 255, 0.35)',
                       background:
                         'linear-gradient(135deg, rgba(100, 70, 200, 0.2), rgba(40, 150, 255, 0.12))',
@@ -587,9 +595,9 @@ function AuthModal({
                     <span
                       style={{
                         display: 'block',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         opacity: 0.75,
-                        marginBottom: '8px',
+                        marginBottom: '6px',
                       }}
                     >
                       ТВОЙ БАЛАНС
@@ -598,7 +606,7 @@ function AuthModal({
                     <strong
                       style={{
                         display: 'block',
-                        fontSize: '34px',
+                        fontSize: '32px',
                         fontWeight: 900,
                         color: '#b69aff',
                       }}
@@ -611,9 +619,9 @@ function AuthModal({
                     <span
                       style={{
                         display: 'block',
-                        fontSize: '12px',
+                        fontSize: '11px',
                         opacity: 0.65,
-                        marginTop: '8px',
+                        marginTop: '6px',
                       }}
                     >
                       CORZA COIN
@@ -621,9 +629,43 @@ function AuthModal({
                   </div>
                 </div>
 
-                {/* История операций */}
+                {/* Компактная история операций */}
                 <div className="profile-section">
-                  <h3>История операций</h3>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '10px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <h3>История операций</h3>
+
+                    {coinTransactions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowAllTransactions((previous) => !previous)
+                        }
+                        style={{
+                          padding: '7px 11px',
+                          borderRadius: '9px',
+                          border: '1px solid rgba(150, 110, 255, 0.35)',
+                          background: 'rgba(120, 100, 200, 0.12)',
+                          color: '#c8b5ff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: '0.2s',
+                        }}
+                      >
+                        {showAllTransactions
+                          ? 'Свернуть историю ↑'
+                          : 'Показать всю историю ↓'}
+                      </button>
+                    )}
+                  </div>
 
                   {coinBalance === null ? (
                     <p className="auth-description">
@@ -635,65 +677,108 @@ function AuthModal({
                       все начисления и списания CC.
                     </p>
                   ) : (
-                    <div style={{ display: 'grid', gap: '10px' }}>
-                      {coinTransactions.map((transaction) => (
-                        <div
-                          key={transaction.id}
-                          style={{
-                            padding: '14px',
-                            borderRadius: '12px',
-                            border: '1px solid rgba(160, 140, 220, 0.2)',
-                            background: 'rgba(120, 100, 180, 0.08)',
-                          }}
-                        >
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: '8px',
+                        marginTop: '12px',
+                        maxHeight: showAllTransactions ? '190px' : 'none',
+                        overflowY: showAllTransactions ? 'auto' : 'visible',
+                        paddingRight: showAllTransactions ? '5px' : '0',
+                      }}
+                    >
+                      {visibleTransactions.map((transaction) => {
+                        const amount = Number(transaction.amount)
+                        const isCredit = amount > 0
+
+                        return (
                           <div
+                            key={transaction.id}
                             style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              gap: '12px',
+                              padding: '11px 13px',
+                              borderRadius: '11px',
+                              border: '1px solid rgba(160, 140, 220, 0.18)',
+                              background: 'rgba(120, 100, 180, 0.07)',
                             }}
                           >
-                            <strong style={{ fontSize: '13px' }}>
-                              {getOperationName(transaction.operation)}
-                            </strong>
-
-                            <strong
+                            <div
                               style={{
-                                color:
-                                  Number(transaction.amount) > 0
-                                    ? '#78e6b0'
-                                    : '#ff8585',
-                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '10px',
                               }}
                             >
-                              {Number(transaction.amount) > 0 ? '+' : ''}
-                              {Number(transaction.amount).toLocaleString('ru-RU')} CC
-                            </strong>
+                              <strong
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {getOperationName(transaction.operation)}
+                              </strong>
+
+                              <strong
+                                style={{
+                                  color: isCredit ? '#78e6b0' : '#ff8585',
+                                  whiteSpace: 'nowrap',
+                                  fontSize: '13px',
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {isCredit ? '+' : ''}
+                                {amount.toLocaleString('ru-RU')} CC
+                              </strong>
+                            </div>
+
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginTop: '6px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  opacity: 0.65,
+                                  minWidth: 0,
+                                  overflowWrap: 'anywhere',
+                                }}
+                              >
+                                {transaction.description || 'Без описания'}
+                              </span>
+
+                              <small
+                                style={{
+                                  fontSize: '10px',
+                                  opacity: 0.45,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {formatDateTime(transaction.created_at)}
+                              </small>
+                            </div>
                           </div>
-
-                          <p
-                            style={{
-                              fontSize: '12px',
-                              opacity: 0.75,
-                              marginTop: '7px',
-                            }}
-                          >
-                            {transaction.description || 'Без описания'}
-                          </p>
-
-                          <small
-                            style={{
-                              display: 'block',
-                              opacity: 0.5,
-                              marginTop: '7px',
-                            }}
-                          >
-                            {formatDateTime(transaction.created_at)}
-                          </small>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
+                  )}
+
+                  {showAllTransactions && coinTransactions.length > 1 && (
+                    <p
+                      style={{
+                        fontSize: '10px',
+                        opacity: 0.45,
+                        textAlign: 'center',
+                        marginTop: '7px',
+                      }}
+                    >
+                      Прокручивай список, чтобы посмотреть остальные операции
+                    </p>
                   )}
                 </div>
 
