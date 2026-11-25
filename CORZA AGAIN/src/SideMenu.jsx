@@ -36,15 +36,17 @@ function SideMenu({ user, isAdmin, blatEnabled }) {
 
   return (
     <>
-      <button
-        type="button"
-        className={`side-menu-toggle ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen((previous) => !previous)}
-        aria-label="Открыть или закрыть меню"
-        aria-expanded={isOpen}
-      >
-        {isOpen ? '×' : '☰'}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="side-menu-toggle"
+          onClick={() => setIsOpen(true)}
+          aria-label="Открыть меню"
+          aria-expanded={false}
+        >
+          ☰
+        </button>
+      )}
 
       {isOpen && (
         <div
@@ -67,6 +69,7 @@ function SideMenu({ user, isAdmin, blatEnabled }) {
             type="button"
             className="side-menu-close"
             onClick={closeMenu}
+            aria-label="Закрыть меню"
           >
             ×
           </button>
