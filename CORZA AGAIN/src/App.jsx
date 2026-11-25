@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import './App.css'
 import AuthModal from './AuthModal'
@@ -125,6 +124,11 @@ function App() {
 
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  // Если профиль не заполнен, запоминаем страницу, которую хотел открыть пользователь
+  const [pendingProfilePage, setPendingProfilePage] = useState(null)
+  const [forceProfileEdit, setForceProfileEdit] = useState(false)
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminCheckLoading, setAdminCheckLoading] = useState(true)
@@ -178,12 +182,15 @@ function App() {
     async function loadProfile() {
       if (!user) {
         setProfile(null)
+        setProfileLoading(false)
         return
       }
 
+      setProfileLoading(true)
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('game_nickname')
+        .select('game_nickname, server')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -192,10 +199,11 @@ function App() {
       if (error) {
         console.error('Ошибка загрузки профиля:', error)
         setProfile(null)
-        return
+      } else {
+        setProfile(data)
       }
 
-      setProfile(data)
+      setProfileLoading(false)
     }
 
     loadProfile()
@@ -204,6 +212,48 @@ function App() {
       active = false
     }
   }, [user])
+
+  // Обязательное заполнение профиля при переходе из верхнего или бокового меню
+  useEffect(() => {
+    function handleProtectedNavigation(event) {
+      const target = event.target
+
+      if (!(target instanceof Element)) return
+
+      const link = target.closest('a[href^="#"]')
+
+      if (!link) return
+
+      // Ограничение действует на ссылки верхнего и бокового меню
+      if (!link.closest('.navbar nav, .side-menu-panel')) return
+
+      if (!user) return
+
+      const destination = link.getAttribute('href')
+
+      if (!destination || destination === '#') return
+
+      const profileIncomplete =
+        !profile?.game_nickname?.trim() ||
+        !profile?.server?.toString().trim()
+
+      // Пока профиль загружается, переход тоже временно блокируется
+      if (profileLoading || profileIncomplete) {
+        event.preventDefault()
+        event.stopPropagation()
+
+        setPendingProfilePage(destination)
+        setForceProfileEdit(true)
+        setAuthOpen(true)
+      }
+    }
+
+    document.addEventListener('click', handleProtectedNavigation, true)
+
+    return () => {
+      document.removeEventListener('click', handleProtectedNavigation, true)
+    }
+  }, [user, profile, profileLoading])
 
   // Проверка прав администратора
   useEffect(() => {
@@ -265,7 +315,6 @@ function App() {
 
     loadBlatSetting()
 
-    // Обновляем настройку при возвращении на вкладку сайта
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
         loadBlatSetting()
@@ -274,7 +323,6 @@ function App() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Получаем изменения настройки в реальном времени
     const channel = supabase
       .channel('blat-settings-changes')
       .on(
@@ -342,7 +390,6 @@ function App() {
       const hash = window.location.hash.replace('#', '')
       let nextPage = getPageFromHash()
 
-      // Если День блата выключен, не разрешаем открыть его страницу
       if (nextPage === 'blat' && !blatEnabled) {
         window.location.hash = '#home'
         nextPage = 'home'
@@ -389,13 +436,28 @@ function App() {
 
       <AuthModal
         open={authOpen}
-        onClose={() => setAuthOpen(false)}
+        forceProfileEdit={forceProfileEdit}
+        onClose={() => {
+          if (!forceProfileEdit) {
+            setAuthOpen(false)
+          }
+        }}
+        onProfileSaved={(savedProfile) => {
+          setProfile(savedProfile)
+          setForceProfileEdit(false)
+          setAuthOpen(false)
+
+          if (pendingProfilePage) {
+            window.location.hash = pendingProfilePage
+            setPendingProfilePage(null)
+          }
+        }}
       />
 
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
-      {/* НОВОЕ БОКОВОЕ МЕНЮ */}
+      {/* БОКОВОЕ МЕНЮ */}
       <SideMenu
         user={user}
         isAdmin={isAdmin && !adminCheckLoading}
@@ -457,7 +519,6 @@ function App() {
         {/* ГЛАВНАЯ СТРАНИЦА */}
         {page === 'home' && (
           <>
-            {/* ГЛАВНЫЙ ЭКРАН */}
             <section className="hero" id="home">
               <div className="hero-content">
                 <div className="eyebrow">

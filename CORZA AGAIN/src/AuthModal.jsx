@@ -1,8 +1,12 @@
-
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
-function AuthModal({ open, onClose }) {
+function AuthModal({
+  open,
+  onClose,
+  forceProfileEdit = false,
+  onProfileSaved,
+}) {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingProvider, setLoadingProvider] = useState('')
@@ -98,6 +102,16 @@ function AuthModal({ open, onClose }) {
       active = false
     }
   }, [user])
+
+  // Автоматически открываем редактирование, если заполнение обязательно
+  useEffect(() => {
+    if (!open || !forceProfileEdit || !user || profileLoading) return
+
+    setEditNickname(profile?.game_nickname || '')
+    setEditServer(profile?.server || '')
+    setMessage('')
+    setEditProfile(true)
+  }, [open, forceProfileEdit, user, profileLoading])
 
   // Загружаем кошелёк и историю Corza Coin
   useEffect(() => {
@@ -223,6 +237,10 @@ function AuthModal({ open, onClose }) {
       setProfile(data)
       setEditProfile(false)
       setMessage('Данные профиля успешно обновлены!')
+
+      if (onProfileSaved) {
+        onProfileSaved(data)
+      }
     } catch (error) {
       console.error('Ошибка сохранения профиля:', error)
 
@@ -319,19 +337,24 @@ function AuthModal({ open, onClose }) {
     user?.user_metadata?.user_name
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
+    <div
+      className="auth-overlay"
+      onClick={forceProfileEdit ? undefined : onClose}
+    >
       <div
         className="auth-modal glass"
         onClick={(event) => event.stopPropagation()}
       >
-        <button
-          className="auth-close"
-          onClick={onClose}
-          type="button"
-          aria-label="Закрыть"
-        >
-          ×
-        </button>
+        {(!forceProfileEdit || !user) && (
+          <button
+            className="auth-close"
+            onClick={onClose}
+            type="button"
+            aria-label="Закрыть"
+          >
+            ×
+          </button>
+        )}
 
         <div className="auth-logo">C</div>
 
@@ -350,10 +373,12 @@ function AuthModal({ open, onClose }) {
               </>
             ) : (
               <>
-                <h2>Мой аккаунт</h2>
+                <h2>{forceProfileEdit ? 'Заполни профиль' : 'Мой аккаунт'}</h2>
 
                 <p className="auth-description">
-                  Добро пожаловать в государственную семью CORZA.
+                  {forceProfileEdit
+                    ? 'Чтобы продолжить пользоваться сайтом CORZA, укажи игровой никнейм и сервер Majestic RP.'
+                    : 'Добро пожаловать в государственную семью CORZA.'}
                 </p>
 
                 <div className="profile-avatar-area">
@@ -397,7 +422,7 @@ function AuthModal({ open, onClose }) {
                       }}
                     >
                       <h3 style={{ margin: 0 }}>
-                        Редактирование профиля
+                        {forceProfileEdit ? 'Обязательное заполнение профиля' : 'Редактирование профиля'}
                       </h3>
 
                       <div>
@@ -419,6 +444,7 @@ function AuthModal({ open, onClose }) {
                           }
                           placeholder="Например: Atlantica_Corza"
                           maxLength={40}
+                          required
                           style={{
                             width: '100%',
                             padding: '13px',
@@ -451,6 +477,7 @@ function AuthModal({ open, onClose }) {
                           }
                           placeholder="Например: 1"
                           maxLength={50}
+                          required
                           style={{
                             width: '100%',
                             padding: '13px',
@@ -475,17 +502,19 @@ function AuthModal({ open, onClose }) {
                           : '💾 Сохранить изменения'}
                       </button>
 
-                      <button
-                        className="auth-submit auth-logout"
-                        type="button"
-                        onClick={() => {
-                          setEditProfile(false)
-                          setMessage('')
-                        }}
-                        disabled={savingProfile}
-                      >
-                        Отмена
-                      </button>
+                      {!forceProfileEdit && (
+                        <button
+                          className="auth-submit auth-logout"
+                          type="button"
+                          onClick={() => {
+                            setEditProfile(false)
+                            setMessage('')
+                          }}
+                          disabled={savingProfile}
+                        >
+                          Отмена
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -674,14 +703,16 @@ function AuthModal({ open, onClose }) {
                   </div>
                 )}
 
-                <button
-                  className="auth-submit auth-logout"
-                  onClick={handleLogout}
-                  type="button"
-                  disabled={loading}
-                >
-                  {loading ? 'Подожди...' : 'Выйти из аккаунта'}
-                </button>
+                {!forceProfileEdit && (
+                  <button
+                    className="auth-submit auth-logout"
+                    onClick={handleLogout}
+                    type="button"
+                    disabled={loading}
+                  >
+                    {loading ? 'Подожди...' : 'Выйти из аккаунта'}
+                  </button>
+                )}
               </>
             )}
           </div>
