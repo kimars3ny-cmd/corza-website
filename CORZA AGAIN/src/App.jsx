@@ -10,6 +10,7 @@ import DiscordWidget from './DiscordWidget'
 import { supabase } from './supabase'
 import NetworkBackground from './NetworkBackground'
 import BlatPage from './BlatPage'
+import SideMenu from './SideMenu'
 
 const leaders = [
   {
@@ -125,7 +126,6 @@ function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
 
-  // Проверка прав администратора
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminCheckLoading, setAdminCheckLoading] = useState(true)
 
@@ -133,61 +133,9 @@ function App() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState('')
 
-  // Состояние Дня блата: null означает, что настройка ещё загружается
-  const [blatEnabled, setBlatEnabled] = useState(null)
-
-  // Загрузка настройки Дня блата и отслеживание её изменений
-  useEffect(() => {
-    let active = true
-
-    async function loadBlatSetting() {
-      const { data, error } = await supabase
-        .from('blat_settings')
-        .select('is_enabled')
-        .eq('id', true)
-        .single()
-
-      if (!active) return
-
-      if (error) {
-        console.error('Ошибка загрузки настроек Дня блата:', error)
-        setBlatEnabled(false)
-        return
-      }
-
-      setBlatEnabled(data?.is_enabled === true)
-    }
-
-    loadBlatSetting()
-
-    // Получаем изменения переключателя из админ-панели без перезагрузки
-    const channel = supabase
-      .channel('blat-settings-live')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'blat_settings',
-        },
-        (payload) => {
-          if (!active) return
-
-          const enabled = payload.new?.is_enabled === true
-          setBlatEnabled(enabled)
-
-          if (!enabled && window.location.hash === '#blat') {
-            window.location.hash = '#home'
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      active = false
-      supabase.removeChannel(channel)
-    }
-  }, [])
+  // Состояние Дня блата
+  const [blatEnabled, setBlatEnabled] = useState(true)
+  const [blatSettingsLoading, setBlatSettingsLoading] = useState(true)
 
   // Получение пользователя
   useEffect(() => {
@@ -257,7 +205,7 @@ function App() {
     }
   }, [user])
 
-  // Проверка прав администратора через Supabase RPC
+  // Проверка прав администратора
   useEffect(() => {
     let active = true
 
@@ -291,6 +239,70 @@ function App() {
       active = false
     }
   }, [user])
+
+  // Загрузка настройки Дня блата
+  useEffect(() => {
+    let active = true
+
+    async function loadBlatSetting() {
+      const { data, error } = await supabase
+        .from('blat_settings')
+        .select('is_enabled')
+        .eq('id', true)
+        .maybeSingle()
+
+      if (!active) return
+
+      if (error) {
+        console.error('Ошибка загрузки настройки Дня блата:', error)
+        setBlatEnabled(false)
+      } else {
+        setBlatEnabled(data?.is_enabled ?? false)
+      }
+
+      setBlatSettingsLoading(false)
+    }
+
+    loadBlatSetting()
+
+    // Обновляем настройку при возвращении на вкладку сайта
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        loadBlatSetting()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Получаем изменения настройки в реальном времени
+    const channel = supabase
+      .channel('blat-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'blat_settings',
+        },
+        (payload) => {
+          if (!active) return
+
+          if (payload.new && typeof payload.new.is_enabled === 'boolean') {
+            setBlatEnabled(payload.new.is_enabled)
+            setBlatSettingsLoading(false)
+          } else {
+            loadBlatSetting()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      active = false
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   // Загрузка рейтинга Corza Coin
   useEffect(() => {
@@ -328,19 +340,18 @@ function App() {
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.replace('#', '')
-      const nextPage = getPageFromHash()
+      let nextPage = getPageFromHash()
 
-      // Если День блата выключен, запрещаем открывать его страницу
-      if (nextPage === 'blat' && blatEnabled === false) {
+      // Если День блата выключен, не разрешаем открыть его страницу
+      if (nextPage === 'blat' && !blatEnabled) {
         window.location.hash = '#home'
-        setPage('home')
-        return
+        nextPage = 'home'
       }
 
       setPage(nextPage)
 
       if (nextPage === 'home') {
-        if (hash && hash !== 'home') {
+        if (hash && hash !== 'home' && hash !== 'blat') {
           requestAnimationFrame(() => {
             document.getElementById(hash)?.scrollIntoView({
               behavior: 'smooth',
@@ -384,8 +395,15 @@ function App() {
       <div className="stars stars-one" />
       <div className="stars stars-two" />
 
-      {/* ПЛАВАЮЩАЯ ПЛАШКА «ДЕНЬ БЛАТА» */}
-      {blatEnabled === true && page !== 'blat' && (
+      {/* НОВОЕ БОКОВОЕ МЕНЮ */}
+      <SideMenu
+        user={user}
+        isAdmin={isAdmin && !adminCheckLoading}
+        blatEnabled={blatEnabled && !blatSettingsLoading}
+      />
+
+      {/* ПЛАВАЮЩАЯ ПЛАШКА ДЕНЬ БЛАТА */}
+      {blatEnabled && !blatSettingsLoading && page !== 'blat' && (
         <a href="#blat" className="blat-floating-button">
           <span className="blat-floating-icon">✦</span>
 
@@ -396,16 +414,6 @@ function App() {
 
           <span className="blat-floating-arrow">↗</span>
         </a>
-      )}
-
-      {/* ЛЕВАЯ КНОПКА АДМИНИСТРИРОВАНИЯ — ТОЛЬКО ДЛЯ АДМИНОВ */}
-      {user && isAdmin && !adminCheckLoading && (
-        <aside className="side-admin-panel">
-          <a href="#admin" className="side-admin-button">
-            <span className="side-admin-icon">⚙</span>
-            <span>Администрирование</span>
-          </a>
-        </aside>
       )}
 
       <header className="navbar glass">
@@ -784,12 +792,25 @@ function App() {
         )}
 
         {/* ДЕНЬ БЛАТА */}
-        {page === 'blat' && blatEnabled === true && (
-          <BlatPage
-            onBack={() => {
-              window.location.hash = '#home'
-            }}
-          />
+        {page === 'blat' && (
+          blatEnabled && !blatSettingsLoading ? (
+            <BlatPage
+              onBack={() => {
+                window.location.hash = '#home'
+              }}
+            />
+          ) : (
+            <section className="standalone-page glass">
+              <span className="section-label">CORZA / BLAT DAY</span>
+              <h1>Приём заявок <span>закрыт.</span></h1>
+              <p>
+                В данный момент День блата выключен администрацией CORZA.
+              </p>
+              <a className="secondary-button" href="#home">
+                На главную
+              </a>
+            </section>
+          )
         )}
 
         {/* ЗАДАНИЯ */}
@@ -854,7 +875,7 @@ function App() {
           </section>
         )}
 
-        {/* АДМИН-ПАНЕЛЬ — ТОЛЬКО ДЛЯ АДМИНИСТРАТОРОВ */}
+        {/* АДМИН-ПАНЕЛЬ */}
         {page === 'admin' && isAdmin && !adminCheckLoading && (
           <AdminPanel />
         )}
