@@ -4320,3 +4320,18 @@ footer > span {
     align-items: flex-start;
   }
 }
+
+
+/* =========================================
+   CORZA — ДОПОЛНИТЕЛЬНЫЙ ОТСТУП ОТ НАВИГАЦИИ
+========================================= */
+
+.app > main {
+  padding-top: 42px !important;
+}
+
+@media (max-width: 700px) {
+  .app > main {
+    padding-top: 26px !important;
+  }
+}
