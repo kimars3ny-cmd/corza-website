@@ -11,6 +11,7 @@ import { supabase } from './supabase'
 import NetworkBackground from './NetworkBackground'
 import BlatPage from './BlatPage'
 import SideMenu from './SideMenu'
+import MemberProfileModal from './MemberProfileModal'
 
 const leaders = [
   {
@@ -126,17 +127,30 @@ function MembersPage({
   loading,
   error,
   onRefresh,
+  onMemberClick,
 }) {
   function renderUser(profile, isMember) {
     return (
       <article
-        className="admin-member"
+        className="admin-member member-card-clickable"
         key={profile.id}
+        role="button"
+        tabIndex={0}
+        aria-label={`Открыть профиль ${profile.game_nickname || 'пользователя'}`}
+        onClick={() => onMemberClick(profile)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onMemberClick(profile)
+          }
+        }}
         style={{
           padding: '18px',
           borderRadius: '16px',
           background: 'rgba(130, 110, 210, 0.07)',
           border: '1px solid rgba(160, 140, 220, 0.15)',
+          cursor: 'pointer',
+          transition: 'transform 180ms ease, border-color 180ms ease, background 180ms ease',
         }}
       >
         <div>
@@ -293,6 +307,7 @@ function App() {
   const [registeredUsers, setRegisteredUsers] = useState([])
   const [membersLoading, setMembersLoading] = useState(false)
   const [membersError, setMembersError] = useState('')
+  const [selectedMember, setSelectedMember] = useState(null)
 
   // Получение пользователя
   useEffect(() => {
@@ -692,6 +707,13 @@ function App() {
     <div className="app">
       <NetworkBackground />
 
+      {selectedMember && (
+        <MemberProfileModal
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+        />
+      )}
+
       <AuthModal
         open={authOpen}
         forceProfileEdit={forceProfileEdit}
@@ -1023,6 +1045,7 @@ function App() {
             loading={membersLoading}
             error={membersError}
             onRefresh={loadMembers}
+            onMemberClick={setSelectedMember}
           />
         )}
 
