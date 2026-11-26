@@ -1,0 +1,236 @@
+
+/* ОБЩИЙ СЛОЙ ПОГОДЫ */
+
+.corza-weather-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+  contain: strict;
+}
+
+.corza-weather-particle {
+  position: absolute;
+  top: -60px;
+  display: block;
+  user-select: none;
+  will-change: transform;
+  animation-name: corza-weather-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* ЛИСТОПАД */
+
+.corza-weather-leaves .corza-weather-particle {
+  filter: drop-shadow(0 0 5px rgba(255, 150, 40, 0.25));
+  animation-name: corza-leaf-fall;
+}
+
+@keyframes corza-leaf-fall {
+  0% {
+    transform: translate3d(0, -5vh, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate3d(
+      calc(var(--weather-drift) * 0.35),
+      25vh,
+      0
+    ) rotate(100deg);
+  }
+
+  50% {
+    transform: translate3d(
+      calc(var(--weather-drift) * -0.3),
+      55vh,
+      0
+    ) rotate(220deg);
+  }
+
+  75% {
+    transform: translate3d(
+      calc(var(--weather-drift) * 0.6),
+      80vh,
+      0
+    ) rotate(300deg);
+  }
+
+  100% {
+    transform: translate3d(var(--weather-drift), 115vh, 0)
+      rotate(420deg);
+  }
+}
+
+/* СНЕГОПАД */
+
+.corza-weather-snow .corza-weather-particle {
+  color: #e8f5ff;
+  text-shadow:
+    0 0 5px rgba(190, 225, 255, 0.9),
+    0 0 12px rgba(130, 190, 255, 0.5);
+  animation-name: corza-snow-fall;
+}
+
+@keyframes corza-snow-fall {
+  0% {
+    transform: translate3d(0, -5vh, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(
+      calc(var(--weather-drift) * 0.5),
+      55vh,
+      0
+    ) rotate(180deg);
+  }
+
+  100% {
+    transform: translate3d(var(--weather-drift), 115vh, 0)
+      rotate(360deg);
+  }
+}
+
+/* ДОЖДЬ */
+
+.corza-weather-rain .corza-weather-particle {
+  top: -100px;
+  width: 2px;
+  height: 80px;
+  animation-name: corza-rain-fall;
+}
+
+.corza-rain-drop {
+  display: block;
+  width: 2px;
+  height: 65px;
+  border-radius: 50%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(150, 195, 255, 0.15),
+    rgba(160, 205, 255, 0.8)
+  );
+  box-shadow: 0 0 5px rgba(120, 175, 255, 0.25);
+}
+
+@keyframes corza-rain-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0);
+  }
+
+  100% {
+    transform: translate3d(-45px, 115vh, 0);
+  }
+}
+
+@keyframes corza-weather-fall {
+  from {
+    transform: translateY(-5vh);
+  }
+
+  to {
+    transform: translateY(115vh);
+  }
+}
+
+/* ПЕРЕКЛЮЧАТЕЛЬ ПОГОДЫ В БОКОВОМ МЕНЮ */
+
+.side-menu-weather {
+  padding: 14px 18px 12px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(160, 160, 255, 0.1);
+}
+
+.side-menu-weather-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.side-menu-weather-option {
+  min-width: 0;
+  min-height: 65px;
+  padding: 8px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(150, 150, 255, 0.13);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #c9c9e8;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.side-menu-weather-option:hover {
+  transform: translateY(-2px);
+  background: rgba(130, 120, 255, 0.12);
+  border-color: rgba(150, 140, 255, 0.4);
+}
+
+.side-menu-weather-option.active {
+  background: rgba(120, 110, 255, 0.17);
+  border-color: rgba(155, 145, 255, 0.65);
+  box-shadow: 0 0 16px rgba(110, 100, 255, 0.13);
+  color: #fff;
+}
+
+.side-menu-weather-option span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.side-menu-weather-option small {
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.side-menu-weather-note {
+  margin-top: 9px;
+  color: rgba(190, 190, 220, 0.55);
+  font-size: 10px;
+  text-align: center;
+}
+
+/* МОБИЛЬНЫЕ УСТРОЙСТВА */
+
+@media (max-width: 480px) {
+  .side-menu-weather {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .side-menu-weather-options {
+    gap: 5px;
+  }
+
+  .side-menu-weather-option {
+    min-height: 60px;
+  }
+
+  .side-menu-weather-option small {
+    font-size: 9px;
+  }
+}
+
+/* УВАЖАЕМ НАСТРОЙКУ ОТКЛЮЧЕНИЯ АНИМАЦИИ */
+
+@media (prefers-reduced-motion: reduce) {
+  .corza-weather-particle {
+    animation: none !important;
+    display: none;
+  }
+}
