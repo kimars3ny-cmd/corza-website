@@ -1,12 +1,31 @@
 
 import { useEffect, useState } from 'react'
 import './SideMenu.css'
+import WeatherEffects from './WeatherEffects'
 
 function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
   const [isOpen, setIsOpen] = useState(false)
 
+  const [weather, setWeather] = useState(() => {
+    try {
+      return localStorage.getItem('corza-weather') || 'none'
+    } catch {
+      return 'none'
+    }
+  })
+
   function closeMenu() {
     setIsOpen(false)
+  }
+
+  function changeWeather(mode) {
+    setWeather(mode)
+
+    try {
+      localStorage.setItem('corza-weather', mode)
+    } catch {
+      // Если хранилище недоступно, режим останется активным до перезагрузки
+    }
   }
 
   useEffect(() => {
@@ -20,6 +39,13 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
+
+  const weatherModes = [
+    { id: 'none', icon: '🌌', title: 'Обычный фон' },
+    { id: 'leaves', icon: '🍂', title: 'Листопад' },
+    { id: 'snow', icon: '❄️', title: 'Снегопад' },
+    { id: 'rain', icon: '🌧️', title: 'Дождь' },
+  ]
 
   const menuItems = [
     {
@@ -104,6 +130,8 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
 
   return (
     <>
+      <WeatherEffects mode={weather} />
+
       {!isOpen && (
         <button
           type="button"
@@ -199,6 +227,34 @@ function SideMenu({ user, isAdmin, blatEnabled, isMember }) {
               </a>
             ))}
         </nav>
+
+        <div className="corza-weather-section">
+          <div className="side-menu-section-label">
+            ПОГОДА
+          </div>
+
+          <div className="corza-weather-options">
+            {weatherModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`corza-weather-option ${
+                  weather === mode.id ? 'active' : ''
+                }`}
+                onClick={() => changeWeather(mode.id)}
+                title={mode.title}
+                aria-pressed={weather === mode.id}
+              >
+                <span>{mode.icon}</span>
+                <small>{mode.title}</small>
+              </button>
+            ))}
+          </div>
+
+          <div className="corza-weather-hint">
+            Настройка действует только у тебя
+          </div>
+        </div>
 
         {isAdmin && (
           <div className="side-menu-admin">

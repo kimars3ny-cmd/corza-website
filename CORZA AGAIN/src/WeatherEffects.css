@@ -1,236 +1,196 @@
 
-/* ОБЩИЙ СЛОЙ ПОГОДЫ */
+/* ПОГОДНЫЕ ЭФФЕКТЫ */
 
 .corza-weather-layer {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
   overflow: hidden;
   pointer-events: none;
-  z-index: 5;
+  z-index: 2;
   contain: strict;
 }
 
 .corza-weather-particle {
   position: absolute;
-  top: -60px;
+  top: -50px;
   display: block;
   user-select: none;
+  pointer-events: none;
   will-change: transform;
-  animation-name: corza-weather-fall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
 }
 
 /* ЛИСТОПАД */
 
-.corza-weather-leaves .corza-weather-particle {
-  filter: drop-shadow(0 0 5px rgba(255, 150, 40, 0.25));
+.corza-leaf {
+  opacity: 0;
   animation-name: corza-leaf-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.25));
 }
 
 @keyframes corza-leaf-fall {
   0% {
     transform: translate3d(0, -5vh, 0) rotate(0deg);
+    opacity: 0;
   }
 
-  25% {
-    transform: translate3d(
-      calc(var(--weather-drift) * 0.35),
-      25vh,
-      0
-    ) rotate(100deg);
+  10% {
+    opacity: 0.9;
   }
 
   50% {
-    transform: translate3d(
-      calc(var(--weather-drift) * -0.3),
-      55vh,
-      0
-    ) rotate(220deg);
+    transform: translate3d(var(--drift), 50vh, 0) rotate(220deg);
   }
 
-  75% {
-    transform: translate3d(
-      calc(var(--weather-drift) * 0.6),
-      80vh,
-      0
-    ) rotate(300deg);
+  90% {
+    opacity: 0.8;
   }
 
   100% {
-    transform: translate3d(var(--weather-drift), 115vh, 0)
-      rotate(420deg);
+    transform: translate3d(calc(var(--drift) * -1), 110vh, 0) rotate(520deg);
+    opacity: 0;
   }
 }
 
 /* СНЕГОПАД */
 
-.corza-weather-snow .corza-weather-particle {
-  color: #e8f5ff;
-  text-shadow:
-    0 0 5px rgba(190, 225, 255, 0.9),
-    0 0 12px rgba(130, 190, 255, 0.5);
+.corza-snowflake {
+  color: #ffffff;
+  opacity: 0;
+  text-shadow: 0 0 8px rgba(180, 220, 255, 0.8);
   animation-name: corza-snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 @keyframes corza-snow-fall {
   0% {
     transform: translate3d(0, -5vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.85;
   }
 
   50% {
-    transform: translate3d(
-      calc(var(--weather-drift) * 0.5),
-      55vh,
-      0
-    ) rotate(180deg);
+    transform: translate3d(var(--drift), 50vh, 0) rotate(180deg);
+  }
+
+  90% {
+    opacity: 0.8;
   }
 
   100% {
-    transform: translate3d(var(--weather-drift), 115vh, 0)
-      rotate(360deg);
+    transform: translate3d(calc(var(--drift) * -0.5), 110vh, 0) rotate(360deg);
+    opacity: 0;
   }
 }
 
 /* ДОЖДЬ */
 
-.corza-weather-rain .corza-weather-particle {
-  top: -100px;
+.corza-raindrop {
   width: 2px;
-  height: 80px;
-  animation-name: corza-rain-fall;
-}
-
-.corza-rain-drop {
-  display: block;
-  width: 2px;
-  height: 65px;
+  height: 35px;
   border-radius: 50%;
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(150, 195, 255, 0.15),
-    rgba(160, 205, 255, 0.8)
+    rgba(160, 205, 255, 0.75)
   );
-  box-shadow: 0 0 5px rgba(120, 175, 255, 0.25);
+  opacity: 0;
+  animation-name: corza-rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 @keyframes corza-rain-fall {
   0% {
     transform: translate3d(0, -10vh, 0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.65;
+  }
+
+  90% {
+    opacity: 0.6;
   }
 
   100% {
-    transform: translate3d(-45px, 115vh, 0);
+    transform: translate3d(-45px, 110vh, 0);
+    opacity: 0;
   }
 }
 
-@keyframes corza-weather-fall {
-  from {
-    transform: translateY(-5vh);
-  }
+/* ПЕРЕКЛЮЧАТЕЛЬ В БОКОВОМ МЕНЮ */
 
-  to {
-    transform: translateY(115vh);
-  }
-}
-
-/* ПЕРЕКЛЮЧАТЕЛЬ ПОГОДЫ В БОКОВОМ МЕНЮ */
-
-.side-menu-weather {
-  padding: 14px 18px 12px;
+.corza-weather-section {
+  padding: 12px 14px 16px;
   margin-top: 8px;
-  border-top: 1px solid rgba(160, 160, 255, 0.1);
+  border-top: 1px solid rgba(160, 150, 255, 0.12);
 }
 
-.side-menu-weather-options {
+.corza-weather-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
-  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
 }
 
-.side-menu-weather-option {
+.corza-weather-option {
   min-width: 0;
-  min-height: 65px;
-  padding: 8px 3px;
+  min-height: 62px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 1px solid rgba(150, 150, 255, 0.13);
+  gap: 5px;
+  padding: 8px 5px;
+  border: 1px solid rgba(150, 145, 255, 0.15);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.035);
-  color: #c9c9e8;
+  color: rgba(235, 235, 255, 0.78);
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: 0.2s ease;
+  font-family: inherit;
 }
 
-.side-menu-weather-option:hover {
-  transform: translateY(-2px);
-  background: rgba(130, 120, 255, 0.12);
-  border-color: rgba(150, 140, 255, 0.4);
-}
-
-.side-menu-weather-option.active {
-  background: rgba(120, 110, 255, 0.17);
-  border-color: rgba(155, 145, 255, 0.65);
-  box-shadow: 0 0 16px rgba(110, 100, 255, 0.13);
-  color: #fff;
-}
-
-.side-menu-weather-option span {
+.corza-weather-option span {
   font-size: 20px;
   line-height: 1;
 }
 
-.side-menu-weather-option small {
-  font-family: inherit;
+.corza-weather-option small {
   font-size: 10px;
-  line-height: 1.2;
-  white-space: nowrap;
+  font-weight: 600;
+  text-align: center;
 }
 
-.side-menu-weather-note {
+.corza-weather-option:hover {
+  background: rgba(125, 110, 255, 0.15);
+  border-color: rgba(150, 135, 255, 0.45);
+  transform: translateY(-2px);
+}
+
+.corza-weather-option.active {
+  background: rgba(115, 100, 255, 0.2);
+  border-color: rgba(155, 140, 255, 0.75);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(115, 100, 255, 0.14);
+}
+
+.corza-weather-hint {
   margin-top: 9px;
-  color: rgba(190, 190, 220, 0.55);
+  color: rgba(190, 190, 220, 0.48);
   font-size: 10px;
   text-align: center;
 }
 
-/* МОБИЛЬНЫЕ УСТРОЙСТВА */
-
-@media (max-width: 480px) {
-  .side-menu-weather {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .side-menu-weather-options {
-    gap: 5px;
-  }
-
-  .side-menu-weather-option {
-    min-height: 60px;
-  }
-
-  .side-menu-weather-option small {
-    font-size: 9px;
-  }
-}
-
-/* УВАЖАЕМ НАСТРОЙКУ ОТКЛЮЧЕНИЯ АНИМАЦИИ */
-
 @media (prefers-reduced-motion: reduce) {
   .corza-weather-particle {
-    animation: none !important;
-    display: none;
+    animation-duration: 30s !important;
   }
 }

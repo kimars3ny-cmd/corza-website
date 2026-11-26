@@ -1,50 +1,83 @@
 
-function WeatherEffects({ mode = 'none' }) {
-  if (mode === 'none') return null
+import './WeatherEffects.css'
 
-  const particles = Array.from({ length: 36 }, (_, index) => ({
+function WeatherEffects({ mode }) {
+  if (!mode || mode === 'none') return null
+
+  const particles = Array.from({ length: 42 }, (_, index) => ({
     id: index,
     left: `${(index * 37 + 11) % 100}%`,
-    delay: `${-((index * 7) % 20)}s`,
-    duration: `${12 + ((index * 13) % 15)}s`,
-    size: `${12 + ((index * 5) % 13)}px`,
-    drift: `${((index * 17) % 160) - 80}px`,
-    opacity: 0.35 + ((index * 11) % 50) / 100,
+    delay: `${(index * 0.73) % 12}s`,
+    duration: `${8 + ((index * 13) % 10)}s`,
+    size: `${12 + ((index * 7) % 13)}px`,
+    drift: `${((index * 17) % 100) - 50}px`,
   }))
 
-  return (
-    <div
-      className={`corza-weather-layer corza-weather-${mode}`}
-      aria-hidden="true"
-    >
-      {particles.map((particle) => (
-        <span
-          key={particle.id}
-          className="corza-weather-particle"
-          style={{
-            left: particle.left,
-            animationDelay: particle.delay,
-            animationDuration: particle.duration,
-            fontSize: particle.size,
-            '--weather-drift': particle.drift,
-            opacity: particle.opacity,
-          }}
-        >
-          {mode === 'leaves' && (
-            ['🍂', '🍁', '🍃'][particle.id % 3]
-          )}
+  if (mode === 'leaves') {
+    const leaves = ['🍂', '🍁', '🍃']
 
-          {mode === 'snow' && (
-            ['❄', '❅', '•'][particle.id % 3]
-          )}
+    return (
+      <div className="corza-weather-layer corza-leaves" aria-hidden="true">
+        {particles.map((particle) => (
+          <span
+            key={particle.id}
+            className="corza-weather-particle corza-leaf"
+            style={{
+              left: particle.left,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration,
+              fontSize: particle.size,
+              '--drift': particle.drift,
+            }}
+          >
+            {leaves[particle.id % leaves.length]}
+          </span>
+        ))}
+      </div>
+    )
+  }
 
-          {mode === 'rain' && (
-            <span className="corza-rain-drop" />
-          )}
-        </span>
-      ))}
-    </div>
-  )
+  if (mode === 'snow') {
+    return (
+      <div className="corza-weather-layer corza-snow" aria-hidden="true">
+        {particles.map((particle) => (
+          <span
+            key={particle.id}
+            className="corza-weather-particle corza-snowflake"
+            style={{
+              left: particle.left,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration,
+              fontSize: particle.size,
+              '--drift': particle.drift,
+            }}
+          >
+            {particle.id % 3 === 0 ? '❄' : '•'}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  if (mode === 'rain') {
+    return (
+      <div className="corza-weather-layer corza-rain" aria-hidden="true">
+        {particles.map((particle) => (
+          <span
+            key={particle.id}
+            className="corza-weather-particle corza-raindrop"
+            style={{
+              left: particle.left,
+              animationDelay: particle.delay,
+              animationDuration: `${1.1 + (particle.id % 10) * 0.12}s`,
+            }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return null
 }
 
 export default WeatherEffects
