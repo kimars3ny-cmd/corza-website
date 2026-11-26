@@ -4335,3 +4335,8 @@ footer > span {
     padding-top: 26px !important;
   }
 }
+
+/* Опускаем только страницу заданий */
+.tasks-page {
+  margin-top: 24px !important;
+}
