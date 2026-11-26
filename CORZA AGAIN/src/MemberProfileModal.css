@@ -1,4 +1,7 @@
-/* Публичный профиль участника CORZA */
+
+/* =========================================
+   ПУБЛИЧНЫЙ ПРОФИЛЬ УЧАСТНИКА CORZA
+========================================= */
 
 .member-profile-overlay {
   position: fixed;
@@ -25,7 +28,9 @@
   background:
     radial-gradient(circle at 85% 0%, rgba(117, 83, 220, 0.2), transparent 36%),
     linear-gradient(145deg, rgba(20, 19, 48, 0.97), rgba(9, 10, 29, 0.98));
-  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.58), 0 0 55px rgba(111, 78, 220, 0.13);
+  box-shadow:
+    0 28px 100px rgba(0, 0, 0, 0.58),
+    0 0 55px rgba(111, 78, 220, 0.13);
   animation: memberProfileRiseIn 220ms ease;
 }
 
@@ -73,13 +78,18 @@
 .member-profile-identity {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 25px;
   margin-top: 30px;
   min-width: 0;
 }
 
+/* =========================================
+   АВАТАР И ОБЪЁМНЫЕ РАМКИ
+========================================= */
+
 .member-profile-avatar {
   position: relative;
+  isolation: isolate;
   display: grid;
   flex: 0 0 92px;
   place-items: center;
@@ -90,32 +100,183 @@
   color: #f4efff;
   background: linear-gradient(145deg, #6551a7, #27244e);
   box-shadow: 0 0 24px rgba(128, 99, 255, 0.18);
+  overflow: visible;
+  z-index: 1;
+  transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .member-profile-avatar span {
+  position: relative;
+  z-index: 2;
   font-size: 38px;
   font-weight: 900;
 }
 
+/* Неоновая */
+
 .member-profile-avatar.frame-neon {
-  border: 2px solid #8c5dff;
-  box-shadow: 0 0 12px #8c5dff, 0 0 30px rgba(140, 93, 255, 0.7), inset 0 0 15px rgba(140, 93, 255, 0.28);
+  border: 2px solid #a4f8ff;
+  box-shadow:
+    0 0 9px #38e8ff,
+    0 0 22px rgba(56, 232, 255, 0.8),
+    0 0 42px rgba(45, 115, 255, 0.5),
+    inset 0 0 15px rgba(56, 232, 255, 0.4);
 }
+
+.member-profile-avatar.frame-neon::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 4px solid #38e8ff;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    0 0 9px #38e8ff,
+    0 0 20px rgba(56, 232, 255, 0.85),
+    inset 0 0 10px rgba(56, 232, 255, 0.5);
+  animation: memberNeonPulse 2.4s ease-in-out infinite;
+}
+
+.member-profile-avatar.frame-neon::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border: 2px dashed rgba(92, 230, 255, 0.85);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: 0 0 14px rgba(56, 232, 255, 0.4);
+  animation: memberFrameRotate 18s linear infinite;
+}
+
+/* Золотая */
 
 .member-profile-avatar.frame-gold {
-  border: 2px solid #f5cf68;
-  box-shadow: 0 0 12px rgba(245, 207, 104, 0.8), 0 0 28px rgba(245, 185, 64, 0.35), inset 0 0 14px rgba(245, 207, 104, 0.2);
+  border: 3px solid #ffe8a0;
+  box-shadow:
+    0 0 9px rgba(255, 214, 107, 0.95),
+    0 0 22px rgba(255, 178, 43, 0.6),
+    0 0 40px rgba(255, 145, 35, 0.3),
+    inset 0 0 15px rgba(255, 214, 107, 0.4);
 }
+
+.member-profile-avatar.frame-gold::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 4px ridge #e8ae3f;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    0 0 9px rgba(255, 210, 105, 0.95),
+    0 0 20px rgba(255, 180, 60, 0.6),
+    inset 0 0 10px rgba(255, 225, 135, 0.65);
+  animation: memberGoldShine 3.5s ease-in-out infinite;
+}
+
+.member-profile-avatar.frame-gold::after {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #fff4bd, #c17a19, #ffe9a0, #9f641b) border-box;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 195, 72, 0.7));
+}
+
+/* Ледяная */
 
 .member-profile-avatar.frame-ice {
-  border: 2px solid #8ce8ff;
-  box-shadow: 0 0 12px rgba(140, 232, 255, 0.8), 0 0 28px rgba(83, 190, 255, 0.38), inset 0 0 14px rgba(140, 232, 255, 0.2);
+  border: 2px solid #e0fbff;
+  box-shadow:
+    0 0 10px #a9eaff,
+    0 0 22px rgba(105, 205, 255, 0.85),
+    0 0 40px rgba(80, 155, 255, 0.4),
+    inset 0 0 15px rgba(169, 234, 255, 0.45);
 }
 
-.member-profile-avatar.frame-royal {
-  border: 2px solid #e0a8ff;
-  box-shadow: 0 0 14px rgba(224, 168, 255, 0.8), 0 0 32px rgba(158, 87, 255, 0.5), inset 0 0 16px rgba(224, 168, 255, 0.24);
+.member-profile-avatar.frame-ice::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 4px ridge #a9eaff;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    0 0 10px rgba(169, 234, 255, 0.95),
+    0 0 20px rgba(80, 190, 255, 0.75),
+    inset 0 0 11px rgba(169, 234, 255, 0.6);
+  animation: memberIceGlow 3s ease-in-out infinite;
 }
+
+.member-profile-avatar.frame-ice::after {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border: 2px dashed rgba(205, 247, 255, 0.9);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 6px #8ce8ff);
+  animation: memberFrameRotate 24s linear infinite reverse;
+}
+
+/* Королевская */
+
+.member-profile-avatar.frame-royal {
+  border: 3px solid #e8c4ff;
+  box-shadow:
+    0 0 10px rgba(224, 168, 255, 0.95),
+    0 0 23px rgba(158, 87, 255, 0.75),
+    0 0 42px rgba(103, 48, 200, 0.45),
+    inset 0 0 15px rgba(224, 168, 255, 0.45);
+}
+
+.member-profile-avatar.frame-royal::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 4px ridge #bd83ff;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    0 0 10px rgba(224, 168, 255, 0.95),
+    0 0 21px rgba(158, 87, 255, 0.75),
+    inset 0 0 11px rgba(224, 168, 255, 0.55);
+  animation: memberRoyalGlow 3s ease-in-out infinite;
+}
+
+.member-profile-avatar.frame-royal::after {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #f7d8ff, #8e4bd5, #f2c5ff, #6934ae) border-box;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 7px rgba(190, 115, 255, 0.8));
+}
+
+/* =========================================
+   ИМЯ И СТАТУС
+========================================= */
 
 .member-profile-name {
   min-width: 0;
@@ -160,6 +321,10 @@
   background: #54e69a;
   box-shadow: 0 0 10px rgba(84, 230, 154, 0.8);
 }
+
+/* =========================================
+   CORZA COIN
+========================================= */
 
 .member-profile-coin-card {
   display: flex;
@@ -215,6 +380,10 @@
   font-size: 25px;
 }
 
+/* =========================================
+   ДАННЫЕ УЧАСТНИКА
+========================================= */
+
 .member-profile-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,6 +420,10 @@
   text-align: center;
 }
 
+/* =========================================
+   ЗАГРУЗКА И ОШИБКИ
+========================================= */
+
 .member-profile-state {
   display: flex;
   flex-direction: column;
@@ -280,6 +453,10 @@
   animation: memberProfileSpin 800ms linear infinite;
 }
 
+/* =========================================
+   КАРТОЧКИ УЧАСТНИКОВ
+========================================= */
+
 .member-card-clickable:hover {
   transform: translateY(-2px);
   border-color: rgba(174, 145, 255, 0.48) !important;
@@ -291,6 +468,10 @@
   outline-offset: 3px;
 }
 
+/* =========================================
+   АНИМАЦИИ
+========================================= */
+
 @keyframes memberProfileSpin {
   to { transform: rotate(360deg); }
 }
@@ -301,9 +482,54 @@
 }
 
 @keyframes memberProfileRiseIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
+
+@keyframes memberFrameRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes memberNeonPulse {
+  0%, 100% {
+    opacity: 0.8;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes memberGoldShine {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+}
+
+@keyframes memberIceGlow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.4);
+  }
+}
+
+@keyframes memberRoyalGlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+}
+
+/* =========================================
+   МОБИЛЬНАЯ ВЕРСИЯ
+========================================= */
 
 @media (max-width: 520px) {
   .member-profile-overlay {
@@ -317,7 +543,7 @@
 
   .member-profile-identity {
     align-items: flex-start;
-    gap: 14px;
+    gap: 20px;
   }
 
   .member-profile-avatar {
@@ -337,5 +563,13 @@
 
   .member-profile-detail {
     padding: 13px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .member-profile-avatar::before,
+  .member-profile-avatar::after,
+  .member-profile-loader {
+    animation: none !important;
   }
 }
