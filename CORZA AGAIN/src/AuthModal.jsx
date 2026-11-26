@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import './ProfileFrames.css'
 
 function AuthModal({
   open,
@@ -25,6 +26,12 @@ function AuthModal({
   const [coinBalance, setCoinBalance] = useState(null)
   const [coinTransactions, setCoinTransactions] = useState([])
   const [showAllTransactions, setShowAllTransactions] = useState(false)
+
+  // МАГАЗИН РАМОК
+  const [frames, setFrames] = useState([])
+  const [ownedFrames, setOwnedFrames] = useState([])
+  const [framesLoading, setFramesLoading] = useState(false)
+  const [frameAction, setFrameAction] = useState('')
 
   // =========================================
   // ПРОВЕРКА АВТОРИЗАЦИИ
@@ -79,7 +86,9 @@ function AuthModal({
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('game_nickname, server, rank, position, joined_at')
+        .select(
+          'game_nickname, server, rank, position, joined_at, equipped_frame'
+        )
         .eq('id', user.id)
         .maybeSingle()
 
@@ -125,6 +134,42 @@ function AuthModal({
   // ЗАГРУЗКА CORZA COIN
   // =========================================
 
+  async function refreshCoinData() {
+    if (!user) return
+
+    const [walletResult, transactionsResult] = await Promise.all([
+      supabase
+        .from('corza_wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+
+      supabase
+        .from('corza_coin_transactions')
+        .select('id, amount, operation, description, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ])
+
+    if (walletResult.error) {
+      setMessage(
+        'Ошибка загрузки кошелька: ' + walletResult.error.message
+      )
+    } else {
+      setCoinBalance(Number(walletResult.data?.balance ?? 0))
+    }
+
+    if (transactionsResult.error) {
+      setMessage(
+        'Ошибка загрузки истории CC: ' +
+          transactionsResult.error.message
+      )
+    } else {
+      setCoinTransactions(transactionsResult.data || [])
+    }
+  }
+
   useEffect(() => {
     let active = true
 
@@ -165,7 +210,8 @@ function AuthModal({
 
       if (transactionsResult.error) {
         setMessage(
-          'Ошибка загрузки истории CC: ' + transactionsResult.error.message
+          'Ошибка загрузки истории CC: ' +
+            transactionsResult.error.message
         )
       } else {
         setCoinTransactions(transactionsResult.data || [])
@@ -178,6 +224,146 @@ function AuthModal({
       active = false
     }
   }, [user])
+
+  // =========================================
+  // ЗАГРУЗКА МАГАЗИНА И КУПЛЕННЫХ РАМОК
+  // =========================================
+
+  useEffect(() => {
+    let active = true
+
+    async function loadFrames() {
+      if (!user) {
+        setFrames([])
+        setOwnedFrames([])
+        return
+      }
+
+      setFramesLoading(true)
+
+      const [catalogResult, ownedResult] = await Promise.all([
+        supabase
+          .from('corza_profile_frames')
+          .select('id, name, price, rarity')
+          .order('price', { ascending: true }),
+
+        supabase
+          .from('corza_user_frames')
+          .select('frame_id')
+          .eq('user_id', user.id),
+      ])
+
+      if (!active) return
+
+      if (catalogResult.error) {
+        setMessage(
+          'Ошибка загрузки магазина рамок: ' +
+            catalogResult.error.message
+        )
+      } else {
+        setFrames(catalogResult.data || [])
+      }
+
+      if (ownedResult.error) {
+        setMessage(
+          'Ошибка загрузки купленных рамок: ' +
+            ownedResult.error.message
+        )
+      } else {
+        setOwnedFrames(
+          (ownedResult.data || []).map((item) => item.frame_id)
+        )
+      }
+
+      setFramesLoading(false)
+    }
+
+    loadFrames()
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  // =========================================
+  // ПОКУПКА РАМКИ
+  // =========================================
+
+  async function buyFrame(frame) {
+    if (!user) {
+      setMessage('Сначала необходимо авторизоваться.')
+      return
+    }
+
+    if (ownedFrames.includes(frame.id)) {
+      setMessage('Эта рамка уже есть в твоей коллекции.')
+      return
+    }
+
+    if (coinBalance === null || coinBalance < Number(frame.price)) {
+      setMessage('Недостаточно Corza Coin для покупки этой рамки.')
+      return
+    }
+
+    setFrameAction(frame.id)
+    setMessage('')
+
+    try {
+      const { error } = await supabase.rpc('purchase_corza_frame', {
+        p_frame_id: frame.id,
+      })
+
+      if (error) throw error
+
+      setOwnedFrames((previous) => [...previous, frame.id])
+
+      await refreshCoinData()
+
+      setMessage(`Рамка «${frame.name}» успешно куплена!`)
+    } catch (error) {
+      console.error('Ошибка покупки рамки:', error)
+      setMessage('Не удалось купить рамку: ' + error.message)
+    } finally {
+      setFrameAction('')
+    }
+  }
+
+  // =========================================
+  // НАДЕТЬ ИЛИ СНЯТЬ РАМКУ
+  // =========================================
+
+  async function equipFrame(frameId) {
+    if (!user) return
+
+    setFrameAction(frameId || 'none')
+    setMessage('')
+
+    try {
+      const { error } = await supabase.rpc('equip_corza_frame', {
+        p_frame_id: frameId || 'none',
+      })
+
+      if (error) throw error
+
+      setProfile((previous) => ({
+        ...(previous || {}),
+        equipped_frame: frameId || 'none',
+      }))
+
+      const selectedFrame = frames.find((frame) => frame.id === frameId)
+
+      setMessage(
+        frameId
+          ? `Рамка «${selectedFrame?.name || ''}» надета!`
+          : 'Рамка снята.'
+      )
+    } catch (error) {
+      console.error('Ошибка смены рамки:', error)
+      setMessage('Не удалось изменить рамку: ' + error.message)
+    } finally {
+      setFrameAction('')
+    }
+  }
 
   // =========================================
   // ВХОД ЧЕРЕЗ GOOGLE И DISCORD
@@ -246,7 +432,9 @@ function AuthModal({
             onConflict: 'id',
           }
         )
-        .select('game_nickname, server, rank, position, joined_at')
+        .select(
+          'game_nickname, server, rank, position, joined_at, equipped_frame'
+        )
         .single()
 
       if (error) throw error
@@ -282,6 +470,8 @@ function AuthModal({
       setCoinBalance(null)
       setCoinTransactions([])
       setShowAllTransactions(false)
+      setFrames([])
+      setOwnedFrames([])
       setEditProfile(false)
       setMessage('')
       onClose()
@@ -331,6 +521,17 @@ function AuthModal({
     return names[operation] || operation || 'Операция'
   }
 
+  function getRarityName(rarity) {
+    const names = {
+      common: 'Обычная',
+      rare: 'Редкая',
+      epic: 'Эпическая',
+      legendary: 'Легендарная',
+    }
+
+    return names[rarity] || 'Особая'
+  }
+
   if (!open) return null
 
   const accountName =
@@ -342,6 +543,8 @@ function AuthModal({
     'Игрок CORZA'
 
   const accountInitial = accountName.charAt(0).toUpperCase()
+
+  const equippedFrame = profile?.equipped_frame || 'none'
 
   const authProvider =
     user?.app_metadata?.provider ||
@@ -399,7 +602,9 @@ function AuthModal({
                 {/* ШАПКА ПРОФИЛЯ */}
 
                 <div className="corza-profile-header">
-                  <div className="corza-profile-avatar">
+                  <div
+                    className={`corza-profile-avatar frame-${equippedFrame}`}
+                  >
                     {accountInitial}
                   </div>
 
@@ -566,6 +771,116 @@ function AuthModal({
                   <div className="corza-wallet-bottom">
                     <span>CORZA COIN</span>
                     <span>ЛИЧНЫЙ КОШЕЛЁК</span>
+                  </div>
+                </div>
+
+                {/* МАГАЗИН РАМОК */}
+
+                <div className="corza-frames-shop">
+                  <div className="corza-frames-heading">
+                    <div>
+                      <span className="corza-frames-eyebrow">
+                        ПЕРСОНАЛИЗАЦИЯ
+                      </span>
+                      <h3>Магазин рамок</h3>
+                    </div>
+
+                    <div className="corza-frames-counter">
+                      {ownedFrames.length} / {frames.length}
+                    </div>
+                  </div>
+
+                  <p className="corza-frames-description">
+                    Выбирай оформление аватара. Купленные рамки останутся
+                    у тебя навсегда.
+                  </p>
+
+                  {framesLoading ? (
+                    <div className="corza-frames-loading">
+                      Загружаем коллекцию рамок...
+                    </div>
+                  ) : frames.length === 0 ? (
+                    <div className="corza-frames-loading">
+                      Рамки пока не найдены.
+                    </div>
+                  ) : (
+                    <div className="corza-frames-grid">
+                      {frames.map((frame) => {
+                        const isOwned = ownedFrames.includes(frame.id)
+                        const isEquipped = equippedFrame === frame.id
+                        const isBusy = frameAction === frame.id
+
+                        return (
+                          <div
+                            className={`corza-frame-card rarity-${frame.rarity}`}
+                            key={frame.id}
+                          >
+                            <div className="corza-frame-preview-wrap">
+                              <div
+                                className={`corza-frame-preview frame-${frame.id}`}
+                              >
+                                {accountInitial}
+                              </div>
+
+                              {isEquipped && (
+                                <span className="corza-frame-equipped">
+                                  НАДЕТА
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="corza-frame-info">
+                              <strong>{frame.name}</strong>
+                              <span>
+                                {getRarityName(frame.rarity)}
+                              </span>
+                            </div>
+
+                            {!isOwned ? (
+                              <button
+                                className="corza-frame-button"
+                                type="button"
+                                disabled={
+                                  isBusy ||
+                                  coinBalance === null ||
+                                  coinBalance < Number(frame.price)
+                                }
+                                onClick={() => buyFrame(frame)}
+                              >
+                                {isBusy
+                                  ? 'Покупаем...'
+                                  : `${Number(frame.price).toLocaleString('ru-RU')} CC`}
+                              </button>
+                            ) : isEquipped ? (
+                              <button
+                                className="corza-frame-button frame-button-muted"
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => equipFrame('')}
+                              >
+                                {frameAction === 'none'
+                                  ? 'Снимаем...'
+                                  : 'Снять рамку'}
+                              </button>
+                            ) : (
+                              <button
+                                className="corza-frame-button frame-button-owned"
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => equipFrame(frame.id)}
+                              >
+                                {isBusy ? 'Надеваем...' : 'Надеть'}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="corza-frames-note">
+                    <span>◈</span>
+                    Покупка рамки списывает CC с твоего личного кошелька.
                   </div>
                 </div>
 

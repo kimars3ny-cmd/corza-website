@@ -1,0 +1,377 @@
+
+/* =========================================
+   МАГАЗИН РАМОК CORZA
+========================================= */
+
+.corza-profile-avatar {
+  position: relative;
+  isolation: isolate;
+  overflow: visible !important;
+  z-index: 1;
+}
+
+/* Общая рамка аватара в профиле */
+
+.corza-profile-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+  z-index: -1;
+  transition: 0.25s ease;
+}
+
+.corza-profile-avatar.frame-none::before {
+  display: none;
+}
+
+.corza-profile-avatar.frame-neon::before {
+  border-color: #38e8ff;
+  box-shadow:
+    0 0 8px #38e8ff,
+    0 0 18px rgba(56, 232, 255, 0.8),
+    inset 0 0 8px rgba(56, 232, 255, 0.35);
+}
+
+.corza-profile-avatar.frame-gold::before {
+  border-color: #ffd66b;
+  box-shadow:
+    0 0 8px #ffd66b,
+    0 0 20px rgba(255, 190, 55, 0.75),
+    inset 0 0 8px rgba(255, 214, 107, 0.35);
+}
+
+.corza-profile-avatar.frame-ice::before {
+  border-color: #a9eaff;
+  box-shadow:
+    0 0 8px #a9eaff,
+    0 0 20px rgba(105, 205, 255, 0.8),
+    inset 0 0 8px rgba(169, 234, 255, 0.4);
+}
+
+.corza-profile-avatar.frame-royal::before {
+  border-color: #bd83ff;
+  box-shadow:
+    0 0 8px #bd83ff,
+    0 0 20px rgba(160, 85, 255, 0.85),
+    inset 0 0 8px rgba(189, 131, 255, 0.4);
+}
+
+/* =========================================
+   БЛОК МАГАЗИНА
+========================================= */
+
+.corza-frames-shop {
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid rgba(145, 130, 255, 0.2);
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(115, 80, 255, 0.12),
+      transparent 42%
+    ),
+    rgba(12, 13, 34, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.corza-frames-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.corza-frames-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #a69aff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.7px;
+}
+
+.corza-frames-heading h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.corza-frames-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(158, 139, 255, 0.28);
+  border-radius: 10px;
+  background: rgba(123, 100, 255, 0.12);
+  color: #c7bdff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.corza-frames-description {
+  margin: 9px 0 17px;
+  color: rgba(215, 216, 240, 0.58);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.corza-frames-loading {
+  padding: 22px 10px;
+  color: rgba(220, 220, 245, 0.65);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================================
+   КАРТОЧКИ РАМОК
+========================================= */
+
+.corza-frames-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.corza-frame-card {
+  position: relative;
+  min-width: 0;
+  padding: 15px 11px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(150, 140, 220, 0.15);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+
+.corza-frame-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(160, 145, 255, 0.42);
+  background: rgba(120, 105, 255, 0.075);
+}
+
+.corza-frame-preview-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 82px;
+  margin-bottom: 12px;
+}
+
+.corza-frame-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 2px solid rgba(160, 145, 255, 0.3);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #24204d, #111329);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.28);
+}
+
+.corza-frame-preview::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Неоновая */
+
+.corza-frame-preview.frame-neon::before {
+  border-color: #38e8ff;
+  box-shadow:
+    0 0 7px #38e8ff,
+    0 0 17px rgba(56, 232, 255, 0.75);
+}
+
+/* Золотая */
+
+.corza-frame-preview.frame-gold::before {
+  border-color: #ffd66b;
+  box-shadow:
+    0 0 7px #ffd66b,
+    0 0 17px rgba(255, 190, 55, 0.75);
+}
+
+/* Ледяная */
+
+.corza-frame-preview.frame-ice::before {
+  border-color: #a9eaff;
+  box-shadow:
+    0 0 7px #a9eaff,
+    0 0 17px rgba(105, 205, 255, 0.8);
+}
+
+/* Королевская */
+
+.corza-frame-preview.frame-royal::before {
+  border-color: #bd83ff;
+  box-shadow:
+    0 0 7px #bd83ff,
+    0 0 17px rgba(160, 85, 255, 0.85);
+}
+
+.corza-frame-equipped {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  padding: 4px 6px;
+  border: 1px solid rgba(91, 232, 177, 0.3);
+  border-radius: 6px;
+  background: rgba(35, 155, 112, 0.15);
+  color: #76edbd;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.corza-frame-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 37px;
+  margin-bottom: 11px;
+  text-align: center;
+}
+
+.corza-frame-info strong {
+  overflow: hidden;
+  color: #f2f0ff;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.corza-frame-info span {
+  color: rgba(205, 201, 235, 0.5);
+  font-size: 10px;
+}
+
+/* Цвет редкости */
+
+.corza-frame-card.rarity-rare {
+  border-color: rgba(65, 207, 255, 0.19);
+}
+
+.corza-frame-card.rarity-epic {
+  border-color: rgba(185, 119, 255, 0.22);
+}
+
+.corza-frame-card.rarity-legendary {
+  border-color: rgba(255, 202, 91, 0.25);
+}
+
+/* =========================================
+   КНОПКИ МАГАЗИНА
+========================================= */
+
+.corza-frame-button {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 1px solid rgba(150, 130, 255, 0.38);
+  border-radius: 9px;
+  background: linear-gradient(
+    120deg,
+    rgba(105, 83, 255, 0.28),
+    rgba(67, 139, 255, 0.19)
+  );
+  color: #e6e0ff;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.corza-frame-button:hover:not(:disabled) {
+  border-color: rgba(178, 160, 255, 0.8);
+  background: linear-gradient(
+    120deg,
+    rgba(123, 99, 255, 0.48),
+    rgba(77, 151, 255, 0.35)
+  );
+  box-shadow: 0 0 15px rgba(122, 99, 255, 0.18);
+}
+
+.corza-frame-button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.corza-frame-button.frame-button-owned {
+  border-color: rgba(83, 220, 170, 0.3);
+  background: rgba(53, 177, 130, 0.12);
+  color: #8aebc4;
+}
+
+.corza-frame-button.frame-button-muted {
+  border-color: rgba(170, 170, 190, 0.2);
+  background: rgba(170, 170, 190, 0.07);
+  color: rgba(225, 225, 240, 0.7);
+}
+
+.corza-frames-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(160, 150, 220, 0.1);
+  color: rgba(210, 210, 235, 0.48);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.corza-frames-note span {
+  color: #a99aff;
+  font-size: 14px;
+}
+
+/* =========================================
+   АДАПТИВНОСТЬ
+========================================= */
+
+@media (max-width: 480px) {
+  .corza-frames-shop {
+    padding: 15px;
+    border-radius: 16px;
+  }
+
+  .corza-frames-grid {
+    gap: 9px;
+  }
+
+  .corza-frame-card {
+    padding: 12px 8px 10px;
+  }
+
+  .corza-frame-preview-wrap {
+    min-height: 72px;
+  }
+
+  .corza-frame-preview {
+    width: 52px;
+    height: 52px;
+  }
+}
